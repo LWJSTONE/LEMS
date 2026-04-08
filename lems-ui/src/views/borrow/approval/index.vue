@@ -3,9 +3,10 @@
     <el-card shadow="hover">
       <template #header><span>借用审批</span></template>
 
-      <el-table :data="tableData" border stripe>
+      <el-table :data="tableData" border stripe v-loading="loading">
         <el-table-column prop="id" label="申请单号" width="160" />
-        <el-table-column prop="deviceId" label="设备ID" width="100" />
+        <el-table-column prop="deviceName" label="设备名称" min-width="140" show-overflow-tooltip />
+        <el-table-column prop="userName" label="申请人" width="100" />
         <el-table-column prop="borrowQuantity" label="数量" width="70" align="center" />
         <el-table-column prop="startTime" label="借用时间" width="170" />
         <el-table-column prop="endTime" label="应还时间" width="170" />
@@ -21,8 +22,8 @@
 
       <el-pagination style="margin-top:16px; text-align:right"
         v-model:current-page="queryParams.current" v-model:page-size="queryParams.size"
-        :total="total" layout="total, prev, pager, next"
-        @current-change="loadData" />
+        :total="total" :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next"
+        @current-change="loadData" @size-change="loadData" />
     </el-card>
 
     <el-dialog v-model="rejectDialogVisible" title="驳回原因" width="450px">
@@ -38,26 +39,38 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { getPendingList, approveBorrow, rejectBorrow } from '@/api/borrow'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const tableData = ref([])
+const loading = ref(false)
 const total = ref(0)
 const queryParams = reactive({ current: 1, size: 10 })
 const rejectDialogVisible = ref(false)
 const rejectReason = ref('')
 const rejectId = ref(null)
 
-const loadData = () => {
-  getPendingList(queryParams).then(res => {
+const loadData = async () => {
+  loading.value = true
+  try {
+    const res = await getPendingList(queryParams)
     tableData.value = res.data?.records || []
     total.value = res.data?.total || 0
-  })
+  } catch (e) {
+    console.error('加载审批列表失败', e)
+  } finally {
+    loading.value = false
+  }
 }
 
 const handleApprove = async (row) => {
-  await approveBorrow(row.id)
-  ElMessage.success('审批通过')
-  loadData()
+  try {
+    await ElMessageBox.confirm('确认通过该借用申请?', '审批确认', { type: 'info' })
+    await approveBorrow(row.id)
+    ElMessage.success('审批通过')
+    loadData()
+  } catch (e) {
+    if (e !== 'cancel') console.error('审批失败', e)
+  }
 }
 
 const handleReject = (row) => {

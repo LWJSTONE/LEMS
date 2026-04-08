@@ -45,7 +45,7 @@
           </el-form>
         </el-tab-pane>
       </el-tabs>
-      <div class="demo-accounts">
+      <div v-if="import.meta.env.DEV" class="demo-accounts">
         <p>演示账号: admin/admin123 | teacher01/admin123 | student01/admin123</p>
       </div>
     </div>

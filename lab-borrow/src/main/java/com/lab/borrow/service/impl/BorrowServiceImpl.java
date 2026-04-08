@@ -7,6 +7,7 @@ import com.lab.borrow.entity.BorrowRecord;
 import com.lab.borrow.mapper.BorrowRecordMapper;
 import com.lab.borrow.service.BorrowService;
 import com.lab.common.exception.BusinessException;
+import com.lab.common.result.R;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -137,7 +139,10 @@ public class BorrowServiceImpl implements BorrowService {
             wrapper.eq(BorrowRecord::getStatus, status);
         }
         wrapper.orderByDesc(BorrowRecord::getCreateTime);
-        return borrowRecordMapper.selectPage(page, wrapper);
+        Page<BorrowRecord> result = borrowRecordMapper.selectPage(page, wrapper);
+        // 填充虚拟字段 deviceName, deviceCode, userName, approverName
+        fillBorrowRecordDisplayFields(result.getRecords());
+        return result;
     }
 
     @Override
@@ -146,7 +151,10 @@ public class BorrowServiceImpl implements BorrowService {
         LambdaQueryWrapper<BorrowRecord> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(BorrowRecord::getStatus, 0); // 待审批
         wrapper.orderByAsc(BorrowRecord::getCreateTime);
-        return borrowRecordMapper.selectPage(page, wrapper);
+        Page<BorrowRecord> result = borrowRecordMapper.selectPage(page, wrapper);
+        // 填充虚拟字段 deviceName, deviceCode, userName, approverName
+        fillBorrowRecordDisplayFields(result.getRecords());
+        return result;
     }
 
     /**
@@ -271,7 +279,10 @@ public class BorrowServiceImpl implements BorrowService {
         LambdaQueryWrapper<BorrowRecord> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(BorrowRecord::getStatus, 3); // 已逾期
         wrapper.orderByDesc(BorrowRecord::getEndTime);
-        return borrowRecordMapper.selectPage(page, wrapper);
+        Page<BorrowRecord> result = borrowRecordMapper.selectPage(page, wrapper);
+        // 填充虚拟字段 deviceName, deviceCode, userName, approverName
+        fillBorrowRecordDisplayFields(result.getRecords());
+        return result;
     }
 
     /**
@@ -288,6 +299,96 @@ public class BorrowServiceImpl implements BorrowService {
         int count = borrowRecordMapper.update(null, wrapper);
         if (count > 0) {
             log.info("定时任务标记逾期记录: count={}", count);
+        }
+    }
+
+    // ==================== 虚拟字段填充辅助方法 ====================
+
+    /**
+     * 批量填充借用记录的虚拟字段（deviceName, deviceCode, userName, approverName）
+     * 使用缓存避免重复 Feign 调用
+     */
+    private void fillBorrowRecordDisplayFields(List<BorrowRecord> records) {
+        if (records == null || records.isEmpty()) {
+            return;
+        }
+
+        // 收集所有需要查询的唯一 ID
+        Set<Long> deviceIds = new HashSet<>();
+        Set<Long> userIds = new HashSet<>();
+        Set<Long> approverIds = new HashSet<>();
+
+        for (BorrowRecord record : records) {
+            if (record.getDeviceId() != null) {
+                deviceIds.add(record.getDeviceId());
+            }
+            if (record.getUserId() != null) {
+                userIds.add(record.getUserId());
+            }
+            if (record.getApproverId() != null) {
+                approverIds.add(record.getApproverId());
+            }
+        }
+
+        // 合并所有需要查询的用户 ID（userId + approverId）
+        Set<Long> allUserIds = new HashSet<>();
+        allUserIds.addAll(userIds);
+        allUserIds.addAll(approverIds);
+
+        // 批量查询设备信息（deviceId -> {name, code}）
+        Map<Long, Map<String, String>> deviceInfoMap = new HashMap<>();
+        for (Long deviceId : deviceIds) {
+            try {
+                R<?> result = deviceFeignClient.getDeviceInfo(deviceId);
+                if (result != null && result.getCode() == 200 && result.getData() != null) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> data = (Map<String, Object>) result.getData();
+                    Map<String, String> info = new HashMap<>();
+                    Object name = data.get("name");
+                    Object code = data.get("code");
+                    info.put("name", name != null ? name.toString() : null);
+                    info.put("code", code != null ? code.toString() : null);
+                    deviceInfoMap.put(deviceId, info);
+                }
+            } catch (Exception e) {
+                log.warn("Feign查询设备信息失败: deviceId={}, error={}", deviceId, e.getMessage());
+            }
+        }
+
+        // 批量查询用户信息（userId -> realName）
+        Map<Long, String> userNameMap = new HashMap<>();
+        for (Long userId : allUserIds) {
+            try {
+                R<?> result = userFeignClient.getUserById(userId);
+                if (result != null && result.getCode() == 200 && result.getData() != null) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> data = (Map<String, Object>) result.getData();
+                    Object realName = data.get("realName");
+                    userNameMap.put(userId, realName != null ? realName.toString() : null);
+                }
+            } catch (Exception e) {
+                log.warn("Feign查询用户信息失败: userId={}, error={}", userId, e.getMessage());
+            }
+        }
+
+        // 填充记录
+        for (BorrowRecord record : records) {
+            // 填充设备信息
+            if (record.getDeviceId() != null) {
+                Map<String, String> deviceInfo = deviceInfoMap.get(record.getDeviceId());
+                if (deviceInfo != null) {
+                    record.setDeviceName(deviceInfo.get("name"));
+                    record.setDeviceCode(deviceInfo.get("code"));
+                }
+            }
+            // 填充申请人名称
+            if (record.getUserId() != null) {
+                record.setUserName(userNameMap.get(record.getUserId()));
+            }
+            // 填充审批人名称
+            if (record.getApproverId() != null) {
+                record.setApproverName(userNameMap.get(record.getApproverId()));
+            }
         }
     }
 

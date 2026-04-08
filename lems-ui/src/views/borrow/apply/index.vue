@@ -89,15 +89,24 @@ const rules = {
 }
 
 const loadDevices = async () => {
-  const res = await getDevicePage({ current: 1, size: 1000, status: 0 })
-  deviceList.value = (res.data?.records || []).filter(d => d.availableQuantity > 0)
+  try {
+    const res = await getDevicePage({ current: 1, size: 100, status: 0 })
+    deviceList.value = (res.data?.records || []).filter(d => d.availableQuantity > 0)
+  } catch (e) {
+    console.error('加载设备列表失败', e)
+  }
 }
 
 const onDeviceChange = async (deviceId) => {
   if (deviceId) {
-    const res = await getDeviceById(deviceId)
-    selectedDevice.value = res.data || {}
-    form.borrowQuantity = 1
+    try {
+      const res = await getDeviceById(deviceId)
+      selectedDevice.value = res.data || {}
+      form.borrowQuantity = 1
+    } catch (e) {
+      console.error('加载设备详情失败', e)
+      selectedDevice.value = null
+    }
   } else {
     selectedDevice.value = null
   }

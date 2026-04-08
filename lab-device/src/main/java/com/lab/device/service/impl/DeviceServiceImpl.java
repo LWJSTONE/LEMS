@@ -16,9 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 设备管理服务实现
@@ -106,6 +104,13 @@ public class DeviceServiceImpl implements DeviceService {
         if (device == null) {
             throw new BusinessException("设备不存在");
         }
+        // 填充虚拟字段 categoryName
+        if (device.getCategoryId() != null) {
+            DeviceCategory category = deviceCategoryMapper.selectById(device.getCategoryId());
+            if (category != null) {
+                device.setCategoryName(category.getName());
+            }
+        }
         return device;
     }
 
@@ -126,7 +131,10 @@ public class DeviceServiceImpl implements DeviceService {
             wrapper.eq(DeviceInfo::getStatus, status);
         }
         wrapper.orderByDesc(DeviceInfo::getCreateTime);
-        return deviceInfoMapper.selectPage(page, wrapper);
+        Page<DeviceInfo> result = deviceInfoMapper.selectPage(page, wrapper);
+        // 填充虚拟字段 categoryName
+        fillCategoryName(result.getRecords());
+        return result;
     }
 
     @Override
@@ -242,6 +250,53 @@ public class DeviceServiceImpl implements DeviceService {
             wrapper.eq(DeviceMaintenance::getStatus, status);
         }
         wrapper.orderByDesc(DeviceMaintenance::getCreateTime);
-        return deviceMaintenanceMapper.selectPage(page, wrapper);
+        Page<DeviceMaintenance> result = deviceMaintenanceMapper.selectPage(page, wrapper);
+        // 填充虚拟字段 deviceName（reportUserName 需要跨服务调用，暂不填充）
+        fillDeviceNameForMaintenance(result.getRecords());
+        return result;
+    }
+
+    // ==================== 虚拟字段填充辅助方法 ====================
+
+    private void fillCategoryName(List<DeviceInfo> devices) {
+        if (devices == null || devices.isEmpty()) {
+            return;
+        }
+        // 批量收集 categoryId 并缓存查询结果
+        Map<Long, String> categoryNameMap = new HashMap<>();
+        for (DeviceInfo device : devices) {
+            if (device.getCategoryId() != null && !categoryNameMap.containsKey(device.getCategoryId())) {
+                DeviceCategory category = deviceCategoryMapper.selectById(device.getCategoryId());
+                if (category != null) {
+                    categoryNameMap.put(device.getCategoryId(), category.getName());
+                }
+            }
+        }
+        for (DeviceInfo device : devices) {
+            if (device.getCategoryId() != null) {
+                device.setCategoryName(categoryNameMap.get(device.getCategoryId()));
+            }
+        }
+    }
+
+    private void fillDeviceNameForMaintenance(List<DeviceMaintenance> records) {
+        if (records == null || records.isEmpty()) {
+            return;
+        }
+        // 批量收集 deviceId 并缓存查询结果
+        Map<Long, String> deviceNameMap = new HashMap<>();
+        for (DeviceMaintenance record : records) {
+            if (record.getDeviceId() != null && !deviceNameMap.containsKey(record.getDeviceId())) {
+                DeviceInfo device = deviceInfoMapper.selectById(record.getDeviceId());
+                if (device != null) {
+                    deviceNameMap.put(record.getDeviceId(), device.getName());
+                }
+            }
+        }
+        for (DeviceMaintenance record : records) {
+            if (record.getDeviceId() != null) {
+                record.setDeviceName(deviceNameMap.get(record.getDeviceId()));
+            }
+        }
     }
 }

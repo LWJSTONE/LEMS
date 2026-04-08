@@ -98,7 +98,9 @@ onMounted(async () => {
 })
 
 const handleCommand = async (command) => {
-  if (command === 'logout') {
+  if (command === 'profile') {
+    ElMessage.info('个人信息功能开发中')
+  } else if (command === 'logout') {
     try {
       await logoutApi()
     } catch (e) { /* ignore */ }

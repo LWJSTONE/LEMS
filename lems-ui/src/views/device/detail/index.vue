@@ -6,7 +6,7 @@
       <el-col :span="14">
         <el-card shadow="hover">
           <template #header><span>基本信息</span></template>
-          <el-descriptions :column="2" border>
+          <el-descriptions :column="2" border v-loading="loading">
             <el-descriptions-item label="设备编号">{{ device.code }}</el-descriptions-item>
             <el-descriptions-item label="设备名称">{{ device.name }}</el-descriptions-item>
             <el-descriptions-item label="规格型号">{{ device.model }}</el-descriptions-item>
@@ -44,7 +44,7 @@
         <!-- 维修记录 -->
         <el-card shadow="hover" style="margin-top:20px">
           <template #header><span>维修记录</span></template>
-          <el-table :data="maintenanceList" border size="small" max-height="300">
+          <el-table :data="maintenanceList" border size="small" max-height="300" v-loading="maintLoading">
             <el-table-column prop="faultDesc" label="故障描述" min-width="120" show-overflow-tooltip />
             <el-table-column prop="status" label="状态" width="80" align="center">
               <template #default="{ row }">
@@ -89,29 +89,49 @@ const deviceId = route.params.id
 const device = ref({})
 const maintenanceList = ref([])
 const showMaintenanceForm = ref(false)
+const loading = ref(false)
+const maintLoading = ref(false)
 const maintForm = reactive({ deviceId, faultDesc: '' })
 
 const statusLabel = (s) => ['正常', '维修中', '已报废', '外借中'][s] || '未知'
 const statusTagType = (s) => ['success', 'warning', 'danger', ''][s] || 'info'
 
 const loadDevice = async () => {
-  const res = await getDeviceById(deviceId)
-  device.value = res.data || {}
+  loading.value = true
+  try {
+    const res = await getDeviceById(deviceId)
+    device.value = res.data || {}
+  } catch (e) {
+    console.error('加载设备详情失败', e)
+  } finally {
+    loading.value = false
+  }
 }
 
 const loadMaintenance = async () => {
-  const res = await getMaintenancePage({ deviceId, current: 1, size: 20 })
-  maintenanceList.value = res.data?.records || []
+  maintLoading.value = true
+  try {
+    const res = await getMaintenancePage({ deviceId, current: 1, size: 20 })
+    maintenanceList.value = res.data?.records || []
+  } catch (e) {
+    console.error('加载维修记录失败', e)
+  } finally {
+    maintLoading.value = false
+  }
 }
 
 const submitMaintenance = async () => {
   if (!maintForm.faultDesc) { ElMessage.warning('请填写故障描述'); return }
-  maintForm.reportUserId = userStore.userInfo.id
-  await addMaintenance(maintForm)
-  ElMessage.success('报修提交成功')
-  showMaintenanceForm.value = false
-  maintForm.faultDesc = ''
-  loadMaintenance()
+  try {
+    maintForm.reportUserId = userStore.userInfo.id
+    await addMaintenance(maintForm)
+    ElMessage.success('报修提交成功')
+    showMaintenanceForm.value = false
+    maintForm.faultDesc = ''
+    loadMaintenance()
+  } catch (e) {
+    console.error('报修提交失败', e)
+  }
 }
 
 onMounted(() => { loadDevice(); loadMaintenance() })

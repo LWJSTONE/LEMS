@@ -16,9 +16,9 @@
         </el-form-item>
       </el-form>
 
-      <el-table :data="tableData" border stripe>
+      <el-table :data="tableData" border stripe v-loading="loading">
         <el-table-column prop="id" label="申请单号" width="160" />
-        <el-table-column prop="deviceId" label="设备ID" width="100" />
+        <el-table-column prop="deviceName" label="设备名称" min-width="140" show-overflow-tooltip />
         <el-table-column prop="borrowQuantity" label="数量" width="70" align="center" />
         <el-table-column prop="startTime" label="借用时间" width="170" />
         <el-table-column prop="endTime" label="应还时间" width="170" />
@@ -39,8 +39,8 @@
 
       <el-pagination style="margin-top:16px; text-align:right"
         v-model:current-page="queryParams.current" v-model:page-size="queryParams.size"
-        :total="total" layout="total, prev, pager, next"
-        @current-change="loadData" />
+        :total="total" :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next"
+        @current-change="loadData" @size-change="loadData" />
     </el-card>
 
     <!-- 归还对话框 -->
@@ -66,6 +66,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
 const tableData = ref([])
 const total = ref(0)
+const loading = ref(false)
 const statusFilter = ref(null)
 const queryParams = reactive({ current: 1, size: 10 })
 const returnDialogVisible = ref(false)
@@ -75,11 +76,17 @@ const returnId = ref(null)
 const statusLabel = (s) => ['待审批','已批准','已归还','已逾期','已驳回','已取消'][s] || '未知'
 const statusTagType = (s) => ['warning','success','info','danger','',''][s] || 'info'
 
-const loadData = () => {
-  getMyBorrowList({ ...queryParams, status: statusFilter.value }).then(res => {
+const loadData = async () => {
+  loading.value = true
+  try {
+    const res = await getMyBorrowList({ ...queryParams, status: statusFilter.value })
     tableData.value = res.data?.records || []
     total.value = res.data?.total || 0
-  })
+  } catch (e) {
+    console.error('加载借用记录失败', e)
+  } finally {
+    loading.value = false
+  }
 }
 
 const handleCancel = async (row) => {

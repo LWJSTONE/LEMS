@@ -10,10 +10,15 @@
         </div>
       </template>
 
-      <el-table :data="labList" border stripe>
+      <el-table :data="labList" border stripe v-loading="loading">
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="name" label="实验室名称" min-width="150" />
         <el-table-column prop="location" label="位置" min-width="180" />
+        <el-table-column prop="managerName" label="负责人" width="100">
+          <template #default="{ row }">
+            {{ row.managerName || '-' }}
+          </template>
+        </el-table-column>
         <el-table-column prop="contactPhone" label="联系电话" width="130" />
         <el-table-column prop="status" label="状态" width="90" align="center">
           <template #default="{ row }">
@@ -61,11 +66,19 @@ import { ElMessage } from 'element-plus'
 
 const labList = ref([])
 const dialogVisible = ref(false)
+const loading = ref(false)
 const form = reactive({ id: null, name: '', location: '', contactPhone: '', status: 1 })
 
 const loadData = async () => {
-  const res = await getLabList()
-  labList.value = res.data || []
+  loading.value = true
+  try {
+    const res = await getLabList()
+    labList.value = res.data || []
+  } catch (e) {
+    console.error('加载实验室列表失败', e)
+  } finally {
+    loading.value = false
+  }
 }
 
 const handleAdd = () => {
@@ -74,21 +87,25 @@ const handleAdd = () => {
 }
 
 const handleEdit = (row) => {
-  Object.assign(form, row)
+  Object.assign(form, { id: row.id, name: row.name, location: row.location, contactPhone: row.contactPhone, status: row.status })
   dialogVisible.value = true
 }
 
 const submitForm = async () => {
   if (!form.name) { ElMessage.warning('请填写实验室名称'); return }
-  if (form.id) {
-    await updateLab(form)
-    ElMessage.success('修改成功')
-  } else {
-    await addLab(form)
-    ElMessage.success('新增成功')
+  try {
+    if (form.id) {
+      await updateLab(form)
+      ElMessage.success('修改成功')
+    } else {
+      await addLab(form)
+      ElMessage.success('新增成功')
+    }
+    dialogVisible.value = false
+    loadData()
+  } catch (e) {
+    console.error('提交实验室失败', e)
   }
-  dialogVisible.value = false
-  loadData()
 }
 
 onMounted(loadData)

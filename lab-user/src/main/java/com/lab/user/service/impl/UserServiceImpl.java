@@ -13,7 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
-import java.util.List;
+import java.util.*;
 
 /**
  * 用户服务实现
@@ -87,6 +87,8 @@ public class UserServiceImpl implements UserService {
         Page<SysUser> result = sysUserMapper.selectPage(page, wrapper);
         // 清除密码字段
         result.getRecords().forEach(u -> u.setPasswordHash(null));
+        // 填充虚拟字段 labName
+        fillLabName(result.getRecords());
         return result;
     }
 
@@ -100,9 +102,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<LabInfo> getLabList() {
-        return labInfoMapper.selectList(
+        List<LabInfo> labs = labInfoMapper.selectList(
                 new LambdaQueryWrapper<LabInfo>().eq(LabInfo::getStatus, 1).orderByAsc(LabInfo::getId)
         );
+        // 填充虚拟字段 managerName
+        fillManagerName(labs);
+        return labs;
     }
 
     @Override
@@ -126,5 +131,53 @@ public class UserServiceImpl implements UserService {
     @Override
     public void updateLab(LabInfo labInfo) {
         labInfoMapper.updateById(labInfo);
+    }
+
+    // ==================== 虚拟字段填充辅助方法 ====================
+
+    /**
+     * 批量填充用户的 labName 虚拟字段
+     */
+    private void fillLabName(List<SysUser> users) {
+        if (users == null || users.isEmpty()) {
+            return;
+        }
+        Map<Long, String> labNameMap = new HashMap<>();
+        for (SysUser user : users) {
+            if (user.getLabId() != null && !labNameMap.containsKey(user.getLabId())) {
+                LabInfo lab = labInfoMapper.selectById(user.getLabId());
+                if (lab != null) {
+                    labNameMap.put(user.getLabId(), lab.getName());
+                }
+            }
+        }
+        for (SysUser user : users) {
+            if (user.getLabId() != null) {
+                user.setLabName(labNameMap.get(user.getLabId()));
+            }
+        }
+    }
+
+    /**
+     * 批量填充实验室的 managerName 虚拟字段
+     */
+    private void fillManagerName(List<LabInfo> labs) {
+        if (labs == null || labs.isEmpty()) {
+            return;
+        }
+        Map<Long, String> managerNameMap = new HashMap<>();
+        for (LabInfo lab : labs) {
+            if (lab.getManagerId() != null && !managerNameMap.containsKey(lab.getManagerId())) {
+                SysUser manager = sysUserMapper.selectById(lab.getManagerId());
+                if (manager != null) {
+                    managerNameMap.put(lab.getManagerId(), manager.getRealName());
+                }
+            }
+        }
+        for (LabInfo lab : labs) {
+            if (lab.getManagerId() != null) {
+                lab.setManagerName(managerNameMap.get(lab.getManagerId()));
+            }
+        }
     }
 }

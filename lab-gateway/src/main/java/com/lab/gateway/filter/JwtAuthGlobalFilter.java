@@ -43,7 +43,13 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
     /** 白名单路径（不需要鉴权） */
     private static final List<String> WHITE_LIST = Arrays.asList(
             "/api/v1/auth/login",
-            "/api/v1/auth/register"
+            "/api/v1/auth/register",
+            "/swagger-ui.html",
+            "/swagger-ui/**",
+            "/v3/api-docs/**",
+            "/webjars/**",
+            "/favicon.ico",
+            "/actuator/**"
     );
 
     @Override

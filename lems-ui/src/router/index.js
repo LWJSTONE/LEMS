@@ -69,6 +69,11 @@ const routes = [
       }
     ]
   }
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/dashboard'
+  }
 ]
 
 const router = createRouter({

@@ -107,11 +107,14 @@ public class AuthServiceImpl implements AuthService {
         user.setPhone(request.getPhone());
         user.setEmail(request.getEmail());
 
-        // 设置角色，默认学生
-        if (StrUtil.isBlank(request.getRoleType())) {
+        // 设置角色，仅允许学生或教师自注册（防止角色越权）
+        String role = request.getRoleType();
+        if (StrUtil.isBlank(role)) {
             user.setRoleType(CommonConstant.ROLE_STUDENT);
+        } else if (CommonConstant.ROLE_STUDENT.equals(role) || CommonConstant.ROLE_TEACHER.equals(role)) {
+            user.setRoleType(role);
         } else {
-            user.setRoleType(request.getRoleType());
+            throw new BusinessException("非法的角色类型，仅允许注册为学生或教师");
         }
         user.setLabId(request.getLabId());
         user.setStatus(1);
@@ -123,6 +126,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void logout(String token) {
+        if (StrUtil.isBlank(token)) {
+            return;
+        }
         // 去掉Bearer前缀
         if (token.startsWith(CommonConstant.JWT_PREFIX)) {
             token = token.substring(CommonConstant.JWT_PREFIX.length());

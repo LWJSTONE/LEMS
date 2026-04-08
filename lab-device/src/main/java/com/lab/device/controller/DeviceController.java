@@ -133,6 +133,10 @@ public class DeviceController {
         String operation = params.get("operation").toString();
         Integer version = Integer.valueOf(params.get("version").toString());
 
+        if (deviceId == null || quantity == null || operation == null || version == null) {
+            return R.fail("参数不完整");
+        }
+
         boolean success;
         if ("DECREASE".equals(operation)) {
             success = deviceService.decreaseStock(deviceId, quantity, version);

@@ -9,7 +9,7 @@
           </el-button>
         </div>
       </template>
-      <el-table :data="categoryTree" row-key="id" border default-expand-all :tree-props="{ children: 'children' }">
+      <el-table :data="categoryTree" row-key="id" border default-expand-all :tree-props="{ children: 'children' }" v-loading="loading">
         <el-table-column prop="name" label="分类名称" min-width="200" />
         <el-table-column prop="sortOrder" label="排序" width="100" align="center" />
         <el-table-column label="操作" width="260">
@@ -50,11 +50,19 @@ import { ElMessage } from 'element-plus'
 
 const categoryTree = ref([])
 const dialogVisible = ref(false)
+const loading = ref(false)
 const form = reactive({ id: null, name: '', parentId: 0, sortOrder: 0 })
 
 const loadData = async () => {
-  const res = await getCategoryTree()
-  categoryTree.value = res.data || []
+  loading.value = true
+  try {
+    const res = await getCategoryTree()
+    categoryTree.value = res.data || []
+  } catch (e) {
+    console.error('加载分类树失败', e)
+  } finally {
+    loading.value = false
+  }
 }
 
 const handleAdd = (parentId) => {
@@ -69,21 +77,29 @@ const handleEdit = (row) => {
 
 const submitForm = async () => {
   if (!form.name) { ElMessage.warning('请填写分类名称'); return }
-  if (form.id) {
-    await updateCategory(form)
-    ElMessage.success('修改成功')
-  } else {
-    await addCategory(form)
-    ElMessage.success('新增成功')
+  try {
+    if (form.id) {
+      await updateCategory(form)
+      ElMessage.success('修改成功')
+    } else {
+      await addCategory(form)
+      ElMessage.success('新增成功')
+    }
+    dialogVisible.value = false
+    loadData()
+  } catch (e) {
+    console.error('提交分类失败', e)
   }
-  dialogVisible.value = false
-  loadData()
 }
 
 const handleDelete = async (id) => {
-  await deleteCategory(id)
-  ElMessage.success('删除成功')
-  loadData()
+  try {
+    await deleteCategory(id)
+    ElMessage.success('删除成功')
+    loadData()
+  } catch (e) {
+    console.error('删除分类失败', e)
+  }
 }
 
 onMounted(loadData)
