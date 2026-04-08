@@ -1,0 +1,62 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: lab-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+        namespace: public
+      config:
+        server-addr: localhost:8848
+        namespace: public
+        file-extension: yaml
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: lab-auth
+          uri: lb://lab-auth
+          predicates:
+            - Path=/api/v1/auth/**
+          filters:
+            - StripPrefix=0
+        - id: lab-user
+          uri: lb://lab-user
+          predicates:
+            - Path=/api/v1/user/**
+          filters:
+            - StripPrefix=0
+        - id: lab-device
+          uri: lb://lab-device
+          predicates:
+            - Path=/api/v1/device/**
+          filters:
+            - StripPrefix=0
+        - id: lab-borrow
+          uri: lb://lab-borrow
+          predicates:
+            - Path=/api/v1/borrow/**
+          filters:
+            - StripPrefix=0
+        - id: lab-report
+          uri: lb://lab-report
+          predicates:
+            - Path=/api/v1/report/**
+          filters:
+            - StripPrefix=0
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origins: "*"
+            allowed-methods: "*"
+            allowed-headers: "*"
+            allow-credentials: true
+
+jwt:
+  secret: bXlsYWJjb21tb25zZWNyZXRrZXkyMDI0ZGV2aWNlbWFuYWdlbWVudA==
+  expiration: 86400000

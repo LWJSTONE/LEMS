@@ -1,0 +1,247 @@
+package com.lab.device.service.impl;
+
+import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lab.device.entity.DeviceCategory;
+import com.lab.device.entity.DeviceInfo;
+import com.lab.device.entity.DeviceMaintenance;
+import com.lab.device.mapper.DeviceCategoryMapper;
+import com.lab.device.mapper.DeviceInfoMapper;
+import com.lab.device.mapper.DeviceMaintenanceMapper;
+import com.lab.device.service.DeviceService;
+import com.lab.common.exception.BusinessException;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import javax.annotation.Resource;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 设备管理服务实现
+ * ★ 关键：库存扣减使用乐观锁控制（decreaseAvailableQuantity）
+ */
+@Slf4j
+@Service
+public class DeviceServiceImpl implements DeviceService {
+
+    @Resource
+    private DeviceInfoMapper deviceInfoMapper;
+
+    @Resource
+    private DeviceCategoryMapper deviceCategoryMapper;
+
+    @Resource
+    private DeviceMaintenanceMapper deviceMaintenanceMapper;
+
+    // ==================== 设备分类 ====================
+
+    @Override
+    public List<DeviceCategory> getCategoryTree() {
+        List<DeviceCategory> allCategories = deviceCategoryMapper.selectList(
+                new LambdaQueryWrapper<DeviceCategory>().orderByAsc(DeviceCategory::getSortOrder)
+        );
+        return buildTree(allCategories, 0L);
+    }
+
+    private List<DeviceCategory> buildTree(List<DeviceCategory> all, Long parentId) {
+        List<DeviceCategory> tree = new ArrayList<>();
+        for (DeviceCategory cat : all) {
+            if (parentId.equals(cat.getParentId())) {
+                cat.setChildren(buildTree(all, cat.getId()));
+                tree.add(cat);
+            }
+        }
+        return tree;
+    }
+
+    @Override
+    public void addCategory(DeviceCategory category) {
+        category.setDeleted(0);
+        deviceCategoryMapper.insert(category);
+    }
+
+    @Override
+    public void updateCategory(DeviceCategory category) {
+        deviceCategoryMapper.updateById(category);
+    }
+
+    @Override
+    public void deleteCategory(Long id) {
+        deviceCategoryMapper.deleteById(id);
+    }
+
+    // ==================== 设备台账 ====================
+
+    @Override
+    public void addDevice(DeviceInfo deviceInfo) {
+        deviceInfo.setDeleted(0);
+        deviceInfo.setVersion(0);
+        // 默认可用数量等于总数量
+        if (deviceInfo.getAvailableQuantity() == null) {
+            deviceInfo.setAvailableQuantity(deviceInfo.getTotalQuantity());
+        }
+        deviceInfoMapper.insert(deviceInfo);
+        log.info("新增设备: code={}, name={}", deviceInfo.getCode(), deviceInfo.getName());
+    }
+
+    @Override
+    public void updateDevice(DeviceInfo deviceInfo) {
+        deviceInfoMapper.updateById(deviceInfo);
+        log.info("修改设备: id={}", deviceInfo.getId());
+    }
+
+    @Override
+    public void deleteDevice(Long id) {
+        deviceInfoMapper.deleteById(id);
+        log.info("删除设备: id={}", id);
+    }
+
+    @Override
+    public DeviceInfo getDeviceById(Long id) {
+        DeviceInfo device = deviceInfoMapper.selectById(id);
+        if (device == null) {
+            throw new BusinessException("设备不存在");
+        }
+        return device;
+    }
+
+    @Override
+    public Page<DeviceInfo> getDevicePage(int pageNum, int pageSize, String name, Long categoryId, Long labId, Integer status) {
+        Page<DeviceInfo> page = new Page<>(pageNum, pageSize);
+        LambdaQueryWrapper<DeviceInfo> wrapper = new LambdaQueryWrapper<>();
+        if (StrUtil.isNotBlank(name)) {
+            wrapper.like(DeviceInfo::getName, name);
+        }
+        if (categoryId != null) {
+            wrapper.eq(DeviceInfo::getCategoryId, categoryId);
+        }
+        if (labId != null) {
+            wrapper.eq(DeviceInfo::getLabId, labId);
+        }
+        if (status != null) {
+            wrapper.eq(DeviceInfo::getStatus, status);
+        }
+        wrapper.orderByDesc(DeviceInfo::getCreateTime);
+        return deviceInfoMapper.selectPage(page, wrapper);
+    }
+
+    @Override
+    public void updateDeviceStatus(Long id, Integer status) {
+        DeviceInfo device = new DeviceInfo();
+        device.setId(id);
+        device.setStatus(status);
+        deviceInfoMapper.updateById(device);
+        log.info("更新设备状态: id={}, status={}", id, status);
+    }
+
+    // ==================== 库存操作（乐观锁核心实现） ====================
+
+    /**
+     * ★ 核心方法：乐观锁扣减可用库存
+     *
+     * 使用 deviceMapper.update(null, wrapper) 搭配乐观锁控制并发扣减：
+     * UPDATE device_info SET available_quantity = available_quantity - #{quantity},
+     * version = version + 1
+     * WHERE id = #{id} AND version = #{version} AND available_quantity >= #{quantity}
+     *
+     * 若影响行数为0，表示库存不足或被并发修改，抛出 BusinessException
+     *
+     * @param deviceId 设备ID
+     * @param quantity 扣减数量
+     * @param version  乐观锁版本号
+     * @return true=扣减成功, false=扣减失败
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean decreaseStock(Long deviceId, Integer quantity, Integer version) {
+        int affectedRows = deviceInfoMapper.decreaseAvailableQuantity(deviceId, quantity, version);
+        if (affectedRows == 0) {
+            log.warn("库存扣减失败（库存不足或并发冲突）: deviceId={}, quantity={}, version={}", deviceId, quantity, version);
+            return false;
+        }
+        log.info("库存扣减成功: deviceId={}, quantity={}", deviceId, quantity);
+        return true;
+    }
+
+    /**
+     * 乐观锁回加库存（归还/取消/驳回时调用）
+     *
+     * @param deviceId 设备ID
+     * @param quantity 回加数量
+     * @param version  乐观锁版本号
+     * @return true=成功, false=失败
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean increaseStock(Long deviceId, Integer quantity, Integer version) {
+        int affectedRows = deviceInfoMapper.increaseAvailableQuantity(deviceId, quantity, version);
+        if (affectedRows == 0) {
+            log.warn("库存回加失败（并发冲突）: deviceId={}, quantity={}, version={}", deviceId, quantity, version);
+            return false;
+        }
+        log.info("库存回加成功: deviceId={}, quantity={}", deviceId, quantity);
+        return true;
+    }
+
+    /**
+     * 获取设备信息（含版本号，供库存操作使用）
+     */
+    @Override
+    public DeviceInfo getDeviceInfoWithVersion(Long deviceId) {
+        DeviceInfo device = deviceInfoMapper.selectById(deviceId);
+        if (device == null) {
+            throw new BusinessException("设备不存在");
+        }
+        return device;
+    }
+
+    // ==================== 维修记录 ====================
+
+    @Override
+    public void addMaintenance(DeviceMaintenance maintenance) {
+        maintenance.setDeleted(0);
+        maintenance.setStatus(0);
+        deviceMaintenanceMapper.insert(maintenance);
+        // 同步更新设备状态为维修中
+        DeviceInfo device = new DeviceInfo();
+        device.setId(maintenance.getDeviceId());
+        device.setStatus(1);
+        deviceInfoMapper.updateById(device);
+        log.info("新增维修记录: deviceId={}", maintenance.getDeviceId());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateMaintenanceStatus(Long id, Integer status) {
+        DeviceMaintenance maintenance = new DeviceMaintenance();
+        maintenance.setId(id);
+        maintenance.setStatus(status);
+        deviceMaintenanceMapper.updateById(maintenance);
+        // 如果修复完成，更新设备状态为正常
+        if (status == 2) {
+            DeviceMaintenance m = deviceMaintenanceMapper.selectById(id);
+            DeviceInfo device = new DeviceInfo();
+            device.setId(m.getDeviceId());
+            device.setStatus(0);
+            deviceInfoMapper.updateById(device);
+        }
+    }
+
+    @Override
+    public Page<DeviceMaintenance> getMaintenancePage(int pageNum, int pageSize, Long deviceId, Integer status) {
+        Page<DeviceMaintenance> page = new Page<>(pageNum, pageSize);
+        LambdaQueryWrapper<DeviceMaintenance> wrapper = new LambdaQueryWrapper<>();
+        if (deviceId != null) {
+            wrapper.eq(DeviceMaintenance::getDeviceId, deviceId);
+        }
+        if (status != null) {
+            wrapper.eq(DeviceMaintenance::getStatus, status);
+        }
+        wrapper.orderByDesc(DeviceMaintenance::getCreateTime);
+        return deviceMaintenanceMapper.selectPage(page, wrapper);
+    }
+}
