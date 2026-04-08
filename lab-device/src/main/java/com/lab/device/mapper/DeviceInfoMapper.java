@@ -1,7 +1,6 @@
 package com.lab.device.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.baomidou.mybatisplus.core.mapper.Mapper;
 import com.lab.device.entity.DeviceInfo;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;

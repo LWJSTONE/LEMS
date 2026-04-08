@@ -102,7 +102,23 @@ public class BorrowServiceImpl implements BorrowService {
             record.setUserId(userId);
             record.setStatus(0); // 待审批
             record.setVersion(0);
-            borrowRecordMapper.insert(record);
+            try {
+                borrowRecordMapper.insert(record);
+            } catch (Exception e) {
+                // 插入失败，补偿：回加已扣减的库存
+                log.error("借用记录插入失败，尝试补偿回加库存: deviceId={}", deviceId, e);
+                try {
+                    Map<String, Object> compensateParams = new java.util.HashMap<>();
+                    compensateParams.put("deviceId", deviceId);
+                    compensateParams.put("quantity", quantity);
+                    compensateParams.put("operation", "INCREASE");
+                    compensateParams.put("version", version);
+                    deviceFeignClient.updateAvailableQuantity(compensateParams);
+                } catch (Exception ex) {
+                    log.error("库存补偿回加也失败: deviceId={}", deviceId, ex);
+                }
+                throw new BusinessException("提交申请失败，请重试");
+            }
 
             log.info("借用申请成功: borrowId={}, deviceId={}, quantity={}, userId={}", record.getId(), deviceId, quantity, userId);
 
@@ -151,7 +167,10 @@ public class BorrowServiceImpl implements BorrowService {
         record.setStatus(1); // 已批准（借用中）
         record.setApproverId(approverId);
         record.setApproveTime(LocalDateTime.now());
-        borrowRecordMapper.updateById(record);
+        int rows = borrowRecordMapper.updateById(record);
+        if (rows == 0) {
+            throw new BusinessException("审批失败，该申请可能已被其他管理员处理");
+        }
 
         log.info("审批通过: borrowId={}, approverId={}", id, approverId);
     }
@@ -176,7 +195,10 @@ public class BorrowServiceImpl implements BorrowService {
         record.setApproverId(approverId);
         record.setApproveTime(LocalDateTime.now());
         record.setRejectReason(reason);
-        borrowRecordMapper.updateById(record);
+        int rows = borrowRecordMapper.updateById(record);
+        if (rows == 0) {
+            throw new BusinessException("驳回失败，该申请可能已被其他管理员处理");
+        }
 
         // ★ 释放预占库存（乐观锁回加）
         releaseStock(record.getDeviceId(), record.getBorrowQuantity());
@@ -203,7 +225,10 @@ public class BorrowServiceImpl implements BorrowService {
         }
 
         record.setStatus(5); // 已取消
-        borrowRecordMapper.updateById(record);
+        int rows = borrowRecordMapper.updateById(record);
+        if (rows == 0) {
+            throw new BusinessException("取消失败，该申请状态已变更");
+        }
 
         // ★ 释放预占库存（乐观锁回加）
         releaseStock(record.getDeviceId(), record.getBorrowQuantity());
@@ -229,7 +254,10 @@ public class BorrowServiceImpl implements BorrowService {
         record.setStatus(2); // 已归还
         record.setActualReturnTime(LocalDateTime.now());
         record.setReturnRemark(remark);
-        borrowRecordMapper.updateById(record);
+        int rows = borrowRecordMapper.updateById(record);
+        if (rows == 0) {
+            throw new BusinessException("归还失败，该申请状态已变更");
+        }
 
         // ★ 库存回增（乐观锁回加）
         releaseStock(record.getDeviceId(), record.getBorrowQuantity());

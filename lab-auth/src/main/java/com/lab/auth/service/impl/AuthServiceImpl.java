@@ -75,6 +75,8 @@ public class AuthServiceImpl implements AuthService {
 
         log.info("用户登录成功: userId={}, username={}, role={}", user.getId(), user.getUsername(), user.getRoleType());
 
+        // LoginResponse字段: token, id, username, realName, roleType, labId
+        // id 与 SysUser.id 一致，前端统一使用 userStore.userInfo.id
         return new LoginResponse(
                 CommonConstant.JWT_PREFIX + token,
                 user.getId(),

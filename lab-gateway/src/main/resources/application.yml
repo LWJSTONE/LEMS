@@ -52,10 +52,11 @@ spring:
       globalcors:
         cors-configurations:
           '[/**]':
-            allowed-origins: "*"
+            allowed-origin-patterns: "*"
             allowed-methods: "*"
             allowed-headers: "*"
             allow-credentials: true
+            max-age: 3600
 
 jwt:
   secret: bXlsYWJjb21tb25zZWNyZXRrZXkyMDI0ZGV2aWNlbWFuYWdlbWVudA==
