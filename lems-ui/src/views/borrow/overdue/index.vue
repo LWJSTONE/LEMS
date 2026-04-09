@@ -4,8 +4,8 @@
       <template #header>
         <div class="card-header">
           <span>逾期未还管理</span>
-          <el-tag type="danger" effect="dark" v-if="tableData.length > 0">
-            共 {{ tableData.length }} 条逾期记录
+          <el-tag type="danger" effect="dark" v-if="total > 0">
+            共 {{ total }} 条逾期记录
           </el-tag>
         </div>
       </template>
@@ -25,30 +25,43 @@
         </el-table-column>
       </el-table>
 
+      <el-pagination style="margin-top:16px; text-align:right"
+        v-model:current-page="queryParams.current" v-model:page-size="queryParams.size"
+        :total="total" :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next"
+        @current-change="loadData" @size-change="handleSizeChange" />
+
       <el-empty v-if="!loading && tableData.length === 0" description="暂无逾期记录" />
     </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { getOverdueList } from '@/api/borrow'
 import { ElMessage } from 'element-plus'
 
 const tableData = ref([])
+const total = ref(0)
 const loading = ref(false)
+const queryParams = reactive({ current: 1, size: 10 })
 
 const loadData = async () => {
   loading.value = true
   try {
-    const res = await getOverdueList()
-    tableData.value = res.data || []
+    const res = await getOverdueList(queryParams)
+    tableData.value = res.data?.records || []
+    total.value = res.data?.total || 0
   } catch (e) {
     console.error('加载逾期列表失败:', e)
     ElMessage.error('加载逾期列表失败')
   } finally {
     loading.value = false
   }
+}
+
+const handleSizeChange = () => {
+  queryParams.current = 1
+  loadData()
 }
 
 onMounted(loadData)

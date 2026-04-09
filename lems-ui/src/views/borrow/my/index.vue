@@ -84,6 +84,7 @@ const loadData = async () => {
     total.value = res.data?.total || 0
   } catch (e) {
     console.error('加载借用记录失败', e)
+    ElMessage.error('加载借用记录失败')
   } finally {
     loading.value = false
   }
@@ -114,6 +115,7 @@ const confirmReturn = async () => {
     loadData()
   } catch (e) {
     console.error('归还失败', e)
+    ElMessage.error('归还失败')
   }
 }
 

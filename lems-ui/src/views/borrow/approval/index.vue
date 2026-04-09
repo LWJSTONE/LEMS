@@ -57,6 +57,7 @@ const loadData = async () => {
     total.value = res.data?.total || 0
   } catch (e) {
     console.error('加载审批列表失败', e)
+    ElMessage.error('加载审批列表失败')
   } finally {
     loading.value = false
   }
@@ -88,6 +89,7 @@ const confirmReject = async () => {
     loadData()
   } catch (e) {
     console.error('驳回失败', e)
+    ElMessage.error('驳回失败')
   }
 }
 

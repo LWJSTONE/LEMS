@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
  * ★ @ConditionalOnClass 确保仅在 MyBatis-Plus 在 classpath 中时才加载（网关不引入 mybatis-plus）
  */
 @Component
-@ConditionalOnClass(name = "org.apache.ibatis.reflection.MetaObjectHandler")
+@ConditionalOnClass(name = "com.baomidou.mybatisplus.core.handlers.MetaObjectHandler")
 public class MybatisMetaObjectHandler implements MetaObjectHandler {
 
     @Override

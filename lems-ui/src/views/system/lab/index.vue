@@ -156,6 +156,7 @@ const submitForm = async () => {
     loadData()
   } catch (e) {
     console.error('提交实验室失败', e)
+    ElMessage.error('提交实验室失败')
   }
 }
 

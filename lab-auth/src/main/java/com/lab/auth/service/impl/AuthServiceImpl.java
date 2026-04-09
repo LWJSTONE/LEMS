@@ -44,10 +44,10 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public LoginResponse login(LoginRequest request) {
         // 查询用户
+        // @TableLogic 会自动追加 deleted=0 条件，无需手动添加
         SysUser user = sysUserMapper.selectOne(
                 new LambdaQueryWrapper<SysUser>()
                         .eq(SysUser::getUsername, request.getUsername())
-                        .eq(SysUser::getDeleted, 0)
         );
 
         if (user == null) {
@@ -90,10 +90,10 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void register(RegisterRequest request) {
         // 检查用户名是否已存在
+        // @TableLogic 会自动追加 deleted=0 条件，无需手动添加
         Long count = sysUserMapper.selectCount(
                 new LambdaQueryWrapper<SysUser>()
                         .eq(SysUser::getUsername, request.getUsername())
-                        .eq(SysUser::getDeleted, 0)
         );
         if (count > 0) {
             throw new BusinessException("用户名已存在");

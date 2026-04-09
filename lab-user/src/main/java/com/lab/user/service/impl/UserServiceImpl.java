@@ -126,6 +126,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void addLab(LabInfo labInfo) {
+        // 检查实验室名称是否已存在
+        Long count = labInfoMapper.selectCount(
+                new LambdaQueryWrapper<LabInfo>().eq(LabInfo::getName, labInfo.getName())
+        );
+        if (count > 0) {
+            throw new BusinessException("实验室名称已存在: " + labInfo.getName());
+        }
         labInfo.setStatus(1);
         labInfo.setDeleted(0);
         labInfoMapper.insert(labInfo);

@@ -210,6 +210,7 @@ const loadData = async () => {
     total.value = res.data.total
   } catch (e) {
     console.error('加载设备列表失败:', e)
+    ElMessage.error('加载设备列表失败')
   } finally {
     loading.value = false
   }
@@ -264,6 +265,7 @@ const submitForm = async () => {
     loadData()
   } catch (e) {
     console.error('提交设备失败:', e)
+    ElMessage.error('提交设备失败')
   }
 }
 
@@ -277,6 +279,7 @@ const handleDelete = async (row) => {
     loadData()
   } catch (e) {
     console.error('删除设备失败:', e)
+    ElMessage.error('删除设备失败')
   }
 }
 
@@ -290,6 +293,7 @@ const loadCategories = async () => {
     categoryTree.value = res.data || []
   } catch (e) {
     console.error('加载分类失败:', e)
+    ElMessage.error('加载分类失败')
   }
 }
 

@@ -78,6 +78,7 @@ const loadData = async () => {
     total.value = res.data?.total || 0
   } catch (e) {
     console.error('加载用户列表失败', e)
+    ElMessage.error('加载用户列表失败')
   } finally {
     loading.value = false
   }

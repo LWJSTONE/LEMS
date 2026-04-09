@@ -60,6 +60,7 @@ const loadData = async () => {
     categoryTree.value = res.data || []
   } catch (e) {
     console.error('加载分类树失败', e)
+    ElMessage.error('加载分类树失败')
   } finally {
     loading.value = false
   }
@@ -89,6 +90,7 @@ const submitForm = async () => {
     loadData()
   } catch (e) {
     console.error('提交分类失败', e)
+    ElMessage.error('提交分类失败')
   }
 }
 
@@ -99,6 +101,7 @@ const handleDelete = async (id) => {
     loadData()
   } catch (e) {
     console.error('删除分类失败', e)
+    ElMessage.error('删除分类失败')
   }
 }
 

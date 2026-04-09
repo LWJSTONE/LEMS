@@ -106,6 +106,7 @@ const onDeviceChange = async (deviceId) => {
       form.borrowQuantity = 1
     } catch (e) {
       console.error('加载设备详情失败', e)
+      ElMessage.error('加载设备详情失败')
       selectedDevice.value = null
     }
   } else {

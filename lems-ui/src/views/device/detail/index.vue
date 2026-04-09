@@ -133,6 +133,7 @@ const submitMaintenance = async () => {
     loadMaintenance()
   } catch (e) {
     console.error('报修提交失败', e)
+    ElMessage.error('报修提交失败')
   }
 }
 

@@ -170,6 +170,7 @@ const saveProfile = async () => {
     profileDialogVisible.value = false
   } catch (e) {
     console.error('修改个人信息失败', e)
+    ElMessage.error('修改个人信息失败')
   } finally {
     profileSaving.value = false
   }
@@ -228,6 +229,7 @@ const savePassword = async () => {
     router.push('/login')
   } catch (e) {
     console.error('修改密码失败', e)
+    ElMessage.error('修改密码失败')
   } finally {
     passwordSaving.value = false
   }

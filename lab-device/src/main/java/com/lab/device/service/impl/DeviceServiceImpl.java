@@ -64,6 +64,10 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Override
     public void updateCategory(DeviceCategory category) {
+        DeviceCategory existing = deviceCategoryMapper.selectById(category.getId());
+        if (existing == null) {
+            throw new BusinessException("分类不存在");
+        }
         deviceCategoryMapper.updateById(category);
     }
 
@@ -257,15 +261,17 @@ public class DeviceServiceImpl implements DeviceService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void addMaintenance(DeviceMaintenance maintenance) {
+        // 先验证设备存在
+        DeviceInfo device = deviceInfoMapper.selectById(maintenance.getDeviceId());
+        if (device == null) {
+            throw new BusinessException("设备不存在，无法提交报修");
+        }
         maintenance.setDeleted(0);
         maintenance.setStatus(0);
         deviceMaintenanceMapper.insert(maintenance);
         // 同步更新设备状态为维修中（带乐观锁检查）
-        DeviceInfo existing = deviceInfoMapper.selectById(maintenance.getDeviceId());
-        if (existing != null) {
-            existing.setStatus(1);
-            deviceInfoMapper.updateById(existing);
-        }
+        device.setStatus(1);
+        deviceInfoMapper.updateById(device);
         log.info("新增维修记录: deviceId={}", maintenance.getDeviceId());
     }
 
