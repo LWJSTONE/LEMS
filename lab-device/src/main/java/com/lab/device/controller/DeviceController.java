@@ -100,7 +100,9 @@ public class DeviceController {
     // ==================== 维修记录 ====================
 
     @PostMapping("/maintenance")
-    public R<Void> addMaintenance(@RequestBody DeviceMaintenance maintenance) {
+    public R<Void> addMaintenance(@RequestBody DeviceMaintenance maintenance,
+                                  @RequestHeader("X-User-Id") Long userId) {
+        maintenance.setReportUserId(userId);
         deviceService.addMaintenance(maintenance);
         return R.ok();
     }

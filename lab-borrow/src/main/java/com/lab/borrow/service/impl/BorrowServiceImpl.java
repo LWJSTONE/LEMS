@@ -64,7 +64,8 @@ public class BorrowServiceImpl implements BorrowService {
         String lockKey = "lock:device:" + deviceId;
 
         // 获取Redis分布式锁（避免乐观锁重试风暴）
-        Boolean locked = stringRedisTemplate.opsForValue().setIfAbsent(lockKey, "1", 30, TimeUnit.SECONDS);
+        String lockValue = UUID.randomUUID().toString();
+        Boolean locked = stringRedisTemplate.opsForValue().setIfAbsent(lockKey, lockValue, 30, TimeUnit.SECONDS);
         if (Boolean.FALSE.equals(locked)) {
             throw new BusinessException("操作过于频繁，请稍后重试");
         }
@@ -110,14 +111,24 @@ public class BorrowServiceImpl implements BorrowService {
                 // 插入失败，补偿：回加已扣减的库存
                 log.error("借用记录插入失败，尝试补偿回加库存: deviceId={}", deviceId, e);
                 try {
-                    Map<String, Object> compensateParams = new java.util.HashMap<>();
-                    compensateParams.put("deviceId", deviceId);
-                    compensateParams.put("quantity", quantity);
-                    compensateParams.put("operation", "INCREASE");
-                    compensateParams.put("version", version);
-                    deviceFeignClient.updateAvailableQuantity(compensateParams);
+                    // 重新查询最新版本号（扣减后version已+1）
+                    com.lab.common.result.R<?> latestDeviceResult = deviceFeignClient.getDeviceInfo(deviceId);
+                    if (latestDeviceResult.getCode() == 200 && latestDeviceResult.getData() != null) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> latestDeviceMap = (Map<String, Object>) latestDeviceResult.getData();
+                        Integer latestVersion = Integer.valueOf(latestDeviceMap.get("version").toString());
+                        Map<String, Object> compensateParams = new java.util.HashMap<>();
+                        compensateParams.put("deviceId", deviceId);
+                        compensateParams.put("quantity", quantity);
+                        compensateParams.put("operation", "INCREASE");
+                        compensateParams.put("version", latestVersion);
+                        com.lab.common.result.R<?> compensateResult = deviceFeignClient.updateAvailableQuantity(compensateParams);
+                        if (compensateResult.getCode() != 200) {
+                            log.error("库存补偿回加失败（版本冲突）: deviceId={}, version={}", deviceId, latestVersion);
+                        }
+                    }
                 } catch (Exception ex) {
-                    log.error("库存补偿回加也失败: deviceId={}", deviceId, ex);
+                    log.error("库存补偿回加异常: deviceId={}", deviceId, ex);
                 }
                 throw new BusinessException("提交申请失败，请重试");
             }
@@ -125,8 +136,11 @@ public class BorrowServiceImpl implements BorrowService {
             log.info("借用申请成功: borrowId={}, deviceId={}, quantity={}, userId={}", record.getId(), deviceId, quantity, userId);
 
         } finally {
-            // 释放分布式锁
-            stringRedisTemplate.delete(lockKey);
+            // 释放分布式锁（仅释放自己持有的锁）
+            String currentValue = stringRedisTemplate.opsForValue().get(lockKey);
+            if (lockValue.equals(currentValue)) {
+                stringRedisTemplate.delete(lockKey);
+            }
         }
     }
 

@@ -296,7 +296,7 @@ const loadCategories = async () => {
 onMounted(() => {
   loadData()
   loadCategories()
-  getLabList().then(res => { labList.value = res.data || [] }).catch(() => {})
+  getLabList().then(res => { labList.value = res.data || [] }).catch(e => { console.error('加载实验室列表失败:', e) })
 })
 </script>
 

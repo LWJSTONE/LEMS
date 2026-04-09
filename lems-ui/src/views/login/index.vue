@@ -88,6 +88,8 @@ const handleLogin = async () => {
       ElMessage.success('登录成功')
       router.push('/dashboard')
     }
+  } catch (e) {
+    // 错误已由响应拦截器处理（ElMessage.error）
   } finally {
     loading.value = false
   }
@@ -101,6 +103,8 @@ const handleRegister = async () => {
       ElMessage.success('注册成功，请登录')
       activeTab.value = 'login'
     }
+  } catch (e) {
+    // 错误已由响应拦截器处理（ElMessage.error）
   } finally {
     loading.value = false
   }

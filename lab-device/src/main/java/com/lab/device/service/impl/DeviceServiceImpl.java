@@ -88,7 +88,10 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Override
     public void updateDevice(DeviceInfo deviceInfo) {
-        deviceInfoMapper.updateById(deviceInfo);
+        int rows = deviceInfoMapper.updateById(deviceInfo);
+        if (rows == 0) {
+            throw new BusinessException("设备信息已被其他用户修改，请刷新后重试");
+        }
         log.info("修改设备: id={}", deviceInfo.getId());
     }
 
