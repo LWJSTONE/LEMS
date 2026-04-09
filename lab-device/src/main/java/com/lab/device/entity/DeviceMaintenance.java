@@ -26,8 +26,10 @@ public class DeviceMaintenance {
     @TableLogic
     private Integer deleted;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
     @TableField(exist = false)
     private String deviceName;

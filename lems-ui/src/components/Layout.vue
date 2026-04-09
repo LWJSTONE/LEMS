@@ -50,14 +50,43 @@
         <router-view />
       </el-main>
     </el-container>
+
+    <!-- 个人信息对话框 -->
+    <el-dialog v-model="profileDialogVisible" title="个人信息" width="500px">
+      <el-form :model="profileForm" label-width="90px">
+        <el-form-item label="用户名">
+          <el-input :model-value="userStore.userInfo.username" disabled />
+        </el-form-item>
+        <el-form-item label="角色">
+          <el-tag :type="roleTagType" size="large">{{ roleLabel }}</el-tag>
+        </el-form-item>
+        <el-form-item label="姓名">
+          <el-input v-model="profileForm.realName" placeholder="请输入姓名" />
+        </el-form-item>
+        <el-form-item label="手机号">
+          <el-input v-model="profileForm.phone" placeholder="请输入手机号" />
+        </el-form-item>
+        <el-form-item label="邮箱">
+          <el-input v-model="profileForm.email" placeholder="请输入邮箱" />
+        </el-form-item>
+        <el-form-item label="所属实验室">
+          <el-input :model-value="userStore.userInfo.labName || '未分配'" disabled />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="profileDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="profileSaving" @click="saveProfile">保存</el-button>
+      </template>
+    </el-dialog>
   </el-container>
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { logout as logoutApi } from '@/api/auth'
+import { updateProfile } from '@/api/user'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
@@ -66,6 +95,11 @@ const userStore = useUserStore()
 const roleLabel = computed(() => {
   const map = { ADMIN: '管理员', TEACHER: '教师', STUDENT: '学生' }
   return map[userStore.roleType] || userStore.roleType
+})
+
+const roleTagType = computed(() => {
+  const map = { ADMIN: 'danger', TEACHER: 'warning', STUDENT: '' }
+  return map[userStore.roleType] || 'info'
 })
 
 const menus = [
@@ -86,6 +120,41 @@ const filteredMenus = computed(() => {
   })
 })
 
+// ========== 个人信息对话框 ==========
+const profileDialogVisible = ref(false)
+const profileSaving = ref(false)
+const profileForm = reactive({
+  realName: '',
+  phone: '',
+  email: ''
+})
+
+const openProfileDialog = () => {
+  profileForm.realName = userStore.userInfo.realName || ''
+  profileForm.phone = userStore.userInfo.phone || ''
+  profileForm.email = userStore.userInfo.email || ''
+  profileDialogVisible.value = true
+}
+
+const saveProfile = async () => {
+  if (!profileForm.realName) {
+    ElMessage.warning('姓名不能为空')
+    return
+  }
+  profileSaving.value = true
+  try {
+    await updateProfile(profileForm)
+    await userStore.fetchProfile()
+    ElMessage.success('个人信息修改成功')
+    profileDialogVisible.value = false
+  } catch (e) {
+    console.error('修改个人信息失败', e)
+  } finally {
+    profileSaving.value = false
+  }
+}
+
+// ========== 路由守卫 & 初始化 ==========
 onMounted(async () => {
   if (userStore.isLoggedIn) {
     try {
@@ -99,7 +168,7 @@ onMounted(async () => {
 
 const handleCommand = async (command) => {
   if (command === 'profile') {
-    ElMessage.info('个人信息功能开发中')
+    openProfileDialog()
   } else if (command === 'logout') {
     try {
       await logoutApi()
