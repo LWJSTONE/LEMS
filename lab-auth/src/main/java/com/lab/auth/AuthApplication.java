@@ -8,7 +8,7 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 /**
  * 认证服务启动类
  */
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "com.lab")
 @EnableDiscoveryClient
 @MapperScan("com.lab.auth.mapper")
 public class AuthApplication {

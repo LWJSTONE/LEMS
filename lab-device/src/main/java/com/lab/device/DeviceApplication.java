@@ -8,7 +8,7 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 /**
  * 设备管理服务启动类
  */
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "com.lab")
 @EnableDiscoveryClient
 @MapperScan("com.lab.device.mapper")
 public class DeviceApplication {

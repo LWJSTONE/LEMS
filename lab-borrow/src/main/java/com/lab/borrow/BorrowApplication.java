@@ -10,7 +10,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 /**
  * 借用预约服务启动类
  */
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "com.lab")
 @EnableDiscoveryClient
 @EnableFeignClients(basePackages = "com.lab.common.feign")
 @MapperScan("com.lab.borrow.mapper")

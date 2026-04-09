@@ -1,5 +1,6 @@
 package com.lab.common.config;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import springfox.documentation.builders.ApiInfoBuilder;
@@ -15,6 +16,7 @@ import springfox.documentation.spring.web.plugins.Docket;
  * 各微服务引入 lab-common 后扫描自己的 controller 包即可
  */
 @Configuration
+@ConditionalOnClass(name = "springfox.documentation.spring.web.plugins.Docket")
 public class SwaggerConfig {
 
     @Bean

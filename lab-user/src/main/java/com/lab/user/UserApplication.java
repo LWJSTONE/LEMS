@@ -9,7 +9,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 /**
  * 用户服务启动类
  */
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "com.lab")
 @EnableDiscoveryClient
 @EnableFeignClients(basePackages = "com.lab.common.feign")
 @MapperScan("com.lab.user.mapper")
