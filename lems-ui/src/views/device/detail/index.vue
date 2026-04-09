@@ -103,6 +103,7 @@ const loadDevice = async () => {
     device.value = res.data || {}
   } catch (e) {
     console.error('加载设备详情失败', e)
+    ElMessage.error('加载设备详情失败')
   } finally {
     loading.value = false
   }
@@ -115,6 +116,7 @@ const loadMaintenance = async () => {
     maintenanceList.value = res.data?.records || []
   } catch (e) {
     console.error('加载维修记录失败', e)
+    ElMessage.error('加载维修记录失败')
   } finally {
     maintLoading.value = false
   }

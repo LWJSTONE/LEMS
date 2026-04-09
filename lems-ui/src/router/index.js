@@ -56,6 +56,12 @@ const routes = [
         meta: { title: '借用审批', icon: 'Checked', roles: ['ADMIN', 'TEACHER'] }
       },
       {
+        path: 'borrow/overdue',
+        name: 'BorrowOverdue',
+        component: () => import('@/views/borrow/overdue/index.vue'),
+        meta: { title: '逾期管理', icon: 'Warning', roles: ['ADMIN', 'TEACHER'] }
+      },
+      {
         path: 'system/user',
         name: 'SystemUser',
         component: () => import('@/views/system/user/index.vue'),

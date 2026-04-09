@@ -17,6 +17,15 @@ export function updateProfile(data) {
   })
 }
 
+// 修改密码
+export function changePassword(data) {
+  return request({
+    url: '/v1/user/password',
+    method: 'put',
+    data
+  })
+}
+
 // 分页查询用户列表
 export function getUserPage(params) {
   return request({

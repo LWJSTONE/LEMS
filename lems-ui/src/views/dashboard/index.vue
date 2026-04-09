@@ -121,6 +121,7 @@ onMounted(async () => {
     })
   } else if (usageRes.status === 'rejected') {
     console.error('加载使用率数据失败:', usageRes.reason)
+    ElMessage.warning('设备使用率数据加载失败')
   }
 
   // 月度趋势图表
@@ -141,6 +142,7 @@ onMounted(async () => {
     })
   } else if (trendRes.status === 'rejected') {
     console.error('加载趋势数据失败:', trendRes.reason)
+    ElMessage.warning('月度趋势数据加载失败')
   }
 
   window.addEventListener('resize', handleResize)

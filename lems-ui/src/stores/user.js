@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { getProfile } from '@/api/user'
+import { ElMessage } from 'element-plus'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -29,9 +30,14 @@ export const useUserStore = defineStore('user', {
     },
 
     async fetchProfile() {
-      const res = await getProfile()
-      if (res.code === 200) {
-        this.setUserInfo(res.data)
+      try {
+        const res = await getProfile()
+        if (res.code === 200) {
+          this.setUserInfo(res.data)
+        }
+      } catch (e) {
+        console.error('获取用户信息失败:', e)
+        // 不抛出异常，避免影响上层调用流程
       }
     },
 

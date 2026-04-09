@@ -3,6 +3,7 @@ package com.lab.user.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lab.common.annotation.RequireRole;
 import com.lab.common.result.R;
+import com.lab.user.dto.PasswordChangeRequest;
 import com.lab.user.entity.LabInfo;
 import com.lab.user.entity.SysUser;
 import com.lab.user.service.UserService;
@@ -36,6 +37,16 @@ public class UserController {
     public R<Void> updateProfile(@RequestHeader("X-User-Id") Long userId,
                                   @RequestBody SysUser user) {
         userService.updateProfile(userId, user);
+        return R.ok();
+    }
+
+    /**
+     * 修改密码
+     */
+    @PutMapping("/password")
+    public R<Void> changePassword(@RequestHeader("X-User-Id") Long userId,
+                                   @RequestBody PasswordChangeRequest request) {
+        userService.changePassword(userId, request.getOldPassword(), request.getNewPassword());
         return R.ok();
     }
 

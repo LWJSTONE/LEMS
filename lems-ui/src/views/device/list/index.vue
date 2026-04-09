@@ -296,7 +296,10 @@ const loadCategories = async () => {
 onMounted(() => {
   loadData()
   loadCategories()
-  getLabList().then(res => { labList.value = res.data || [] }).catch(e => { console.error('加载实验室列表失败:', e) })
+  getLabList().then(res => { labList.value = res.data || [] }).catch(e => {
+    console.error('加载实验室列表失败:', e)
+    ElMessage.warning('实验室列表加载失败，设备可能无法按实验室筛选')
+  })
 })
 </script>
 

@@ -60,4 +60,9 @@ public interface UserService {
      * 修改实验室
      */
     void updateLab(LabInfo labInfo);
+
+    /**
+     * 修改密码
+     */
+    void changePassword(Long userId, String oldPassword, String newPassword);
 }

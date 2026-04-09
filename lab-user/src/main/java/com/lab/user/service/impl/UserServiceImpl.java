@@ -10,6 +10,7 @@ import com.lab.user.mapper.SysUserMapper;
 import com.lab.user.service.UserService;
 import com.lab.common.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -94,10 +95,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void updateUserStatus(Long userId, Integer status) {
-        SysUser user = new SysUser();
-        user.setId(userId);
-        user.setStatus(status);
-        sysUserMapper.updateById(user);
+        SysUser existing = sysUserMapper.selectById(userId);
+        if (existing == null) {
+            throw new BusinessException("用户不存在");
+        }
+        existing.setStatus(status);
+        sysUserMapper.updateById(existing);
     }
 
     @Override
@@ -130,7 +133,29 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void updateLab(LabInfo labInfo) {
+        LabInfo existing = labInfoMapper.selectById(labInfo.getId());
+        if (existing == null) {
+            throw new BusinessException("实验室不存在");
+        }
         labInfoMapper.updateById(labInfo);
+    }
+
+    @Override
+    public void changePassword(Long userId, String oldPassword, String newPassword) {
+        SysUser user = sysUserMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+        if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
+            throw new BusinessException("旧密码不正确");
+        }
+        if (oldPassword.equals(newPassword)) {
+            throw new BusinessException("新密码不能与旧密码相同");
+        }
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        sysUserMapper.updateById(user);
+        log.info("用户 {} 修改密码成功", userId);
     }
 
     // ==================== 虚拟字段填充辅助方法 ====================

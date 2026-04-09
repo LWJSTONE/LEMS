@@ -2,6 +2,7 @@ package com.lab.common.exception;
 
 import com.lab.common.result.R;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -12,9 +13,11 @@ import java.util.stream.Collectors;
 
 /**
  * 全局异常处理器
+ * ★ @ConditionalOnWebApplication(Type.SERVLET) 确保仅在 Servlet MVC 服务中加载，避免 WebFlux 网关冲突
  */
 @Slf4j
 @RestControllerAdvice
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class GlobalExceptionHandler {
 
     /**

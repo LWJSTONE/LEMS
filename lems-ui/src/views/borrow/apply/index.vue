@@ -94,6 +94,7 @@ const loadDevices = async () => {
     deviceList.value = (res.data?.records || []).filter(d => d.availableQuantity > 0)
   } catch (e) {
     console.error('加载设备列表失败', e)
+    ElMessage.error('加载可用设备列表失败，请稍后重试')
   }
 }
 

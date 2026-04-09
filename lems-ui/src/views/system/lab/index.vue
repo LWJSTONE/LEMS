@@ -27,14 +27,17 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="120">
+        <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
+            <el-button size="small" @click="handleMembers(row)">成员</el-button>
             <el-button size="small" type="primary" @click="handleEdit(row)">编辑</el-button>
+            <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
     </el-card>
 
+    <!-- 新增/编辑对话框 -->
     <el-dialog v-model="dialogVisible" :title="form.id ? '编辑实验室' : '新增实验室'" width="500px">
       <el-form :model="form" label-width="90px">
         <el-form-item label="实验室名称" required>
@@ -56,18 +59,42 @@
         <el-button type="primary" @click="submitForm">确定</el-button>
       </template>
     </el-dialog>
+
+    <!-- 实验室成员对话框 -->
+    <el-dialog v-model="membersDialogVisible" title="实验室成员" width="600px">
+      <el-table :data="memberList" border stripe v-loading="membersLoading" max-height="400">
+        <el-table-column prop="username" label="用户名" width="120" />
+        <el-table-column prop="realName" label="姓名" width="120" />
+        <el-table-column prop="roleType" label="角色" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag :type="row.roleType === 'ADMIN' ? 'danger' : row.roleType === 'TEACHER' ? 'warning' : ''" size="small">
+              {{ { ADMIN: '管理员', TEACHER: '教师', STUDENT: '学生' }[row.roleType] || row.roleType }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="phone" label="手机号" width="140" />
+        <el-table-column prop="createTime" label="加入时间" min-width="160" />
+      </el-table>
+      <el-empty v-if="!membersLoading && memberList.length === 0" description="暂无成员" />
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { getLabList, addLab, updateLab } from '@/api/user'
-import { ElMessage } from 'element-plus'
+import { getLabList, addLab, updateLab, getLabMembers } from '@/api/user'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const labList = ref([])
 const dialogVisible = ref(false)
 const loading = ref(false)
 const form = reactive({ id: null, name: '', location: '', contactPhone: '', status: 1 })
+
+// 成员管理
+const membersDialogVisible = ref(false)
+const membersLoading = ref(false)
+const memberList = ref([])
+const currentLabId = ref(null)
 
 const loadData = async () => {
   loading.value = true
@@ -76,6 +103,7 @@ const loadData = async () => {
     labList.value = res.data || []
   } catch (e) {
     console.error('加载实验室列表失败', e)
+    ElMessage.error('加载实验室列表失败')
   } finally {
     loading.value = false
   }
@@ -89,6 +117,29 @@ const handleAdd = () => {
 const handleEdit = (row) => {
   Object.assign(form, { id: row.id, name: row.name, location: row.location, contactPhone: row.contactPhone, status: row.status })
   dialogVisible.value = true
+}
+
+const handleDelete = async (row) => {
+  try {
+    await ElMessageBox.confirm(`确认删除实验室"${row.name}"?`, '提示', { type: 'warning' })
+  } catch (e) { return }
+  // 目前后端无删除实验室API，暂时提示
+  ElMessage.warning('实验室删除功能暂未开放，如需删除请联系系统管理员')
+}
+
+const handleMembers = async (row) => {
+  currentLabId.value = row.id
+  membersDialogVisible.value = true
+  membersLoading.value = true
+  try {
+    const res = await getLabMembers({ labId: row.id, current: 1, size: 100 })
+    memberList.value = res.data?.records || []
+  } catch (e) {
+    console.error('加载实验室成员失败:', e)
+    ElMessage.error('加载实验室成员失败')
+  } finally {
+    membersLoading.value = false
+  }
 }
 
 const submitForm = async () => {

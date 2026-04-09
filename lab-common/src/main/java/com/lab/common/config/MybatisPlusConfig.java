@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Configuration;
  * ★ @ConditionalOnClass 确保仅在 MyBatis-Plus 在 classpath 中时才加载（网关不引入 mybatis-plus）
  */
 @Configuration
-@ConditionalOnClass(MybatisPlusInterceptor.class)
+@ConditionalOnClass(name = "com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor")
 public class MybatisPlusConfig {
 
     /**

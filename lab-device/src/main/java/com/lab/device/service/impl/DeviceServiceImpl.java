@@ -69,6 +69,20 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Override
     public void deleteCategory(Long id) {
+        // 检查该分类下是否有关联设备
+        Long deviceCount = deviceInfoMapper.selectCount(
+                new LambdaQueryWrapper<DeviceInfo>().eq(DeviceInfo::getCategoryId, id)
+        );
+        if (deviceCount > 0) {
+            throw new BusinessException("该分类下存在关联设备（共" + deviceCount + "台），无法删除");
+        }
+        // 检查是否有子分类
+        Long childCount = deviceCategoryMapper.selectCount(
+                new LambdaQueryWrapper<DeviceCategory>().eq(DeviceCategory::getParentId, id)
+        );
+        if (childCount > 0) {
+            throw new BusinessException("该分类下存在子分类，请先删除子分类");
+        }
         deviceCategoryMapper.deleteById(id);
     }
 
@@ -76,6 +90,13 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Override
     public void addDevice(DeviceInfo deviceInfo) {
+        // 检查设备编号唯一性
+        Long count = deviceInfoMapper.selectCount(
+                new LambdaQueryWrapper<DeviceInfo>().eq(DeviceInfo::getCode, deviceInfo.getCode())
+        );
+        if (count > 0) {
+            throw new BusinessException("设备编号已存在: " + deviceInfo.getCode());
+        }
         deviceInfo.setDeleted(0);
         deviceInfo.setVersion(0);
         // 默认可用数量等于总数量
@@ -97,6 +118,22 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Override
     public void deleteDevice(Long id) {
+        DeviceInfo device = deviceInfoMapper.selectById(id);
+        if (device == null) {
+            throw new BusinessException("设备不存在");
+        }
+        if (device.getAvailableQuantity() < device.getTotalQuantity()) {
+            throw new BusinessException("该设备存在未归还的借用记录（已借出" + (device.getTotalQuantity() - device.getAvailableQuantity()) + "台），无法删除");
+        }
+        // 检查是否有未完成的维修记录
+        Long maintCount = deviceMaintenanceMapper.selectCount(
+                new LambdaQueryWrapper<DeviceMaintenance>()
+                        .eq(DeviceMaintenance::getDeviceId, id)
+                        .in(DeviceMaintenance::getStatus, 0, 1)
+        );
+        if (maintCount > 0) {
+            throw new BusinessException("该设备存在未完成的维修记录，无法删除");
+        }
         deviceInfoMapper.deleteById(id);
         log.info("删除设备: id={}", id);
     }
@@ -246,6 +283,14 @@ public class DeviceServiceImpl implements DeviceService {
             DeviceInfo device = deviceInfoMapper.selectById(existing.getDeviceId());
             if (device != null) {
                 device.setStatus(0);
+                deviceInfoMapper.updateById(device);
+            }
+        }
+        // 如果无法修复，更新设备状态为已报废
+        if (status == 3 && existing.getDeviceId() != null) {
+            DeviceInfo device = deviceInfoMapper.selectById(existing.getDeviceId());
+            if (device != null) {
+                device.setStatus(2);
                 deviceInfoMapper.updateById(device);
             }
         }
