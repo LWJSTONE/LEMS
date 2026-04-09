@@ -1,28 +1,13 @@
 package com.lab.gateway.config;
 
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.reactive.CorsWebFilter;
-import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
 /**
  * 跨域配置
+ * CORS 已在 application.yml 中通过 spring.cloud.gateway.globalcors 配置
+ * 此类保留用于后续扩展其他网关配置
  */
 @Configuration
 public class CorsConfig {
-
-    @Bean
-    public CorsWebFilter corsWebFilter() {
-        CorsConfiguration config = new CorsConfiguration();
-        config.addAllowedOriginPattern("*");
-        config.addAllowedHeader("*");
-        config.addAllowedMethod("*");
-        config.setAllowCredentials(true);
-        config.setMaxAge(3600L);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return new CorsWebFilter(source);
-    }
+    // CORS 由 YAML 配置统一管理，无需额外的 CorsWebFilter Bean
 }

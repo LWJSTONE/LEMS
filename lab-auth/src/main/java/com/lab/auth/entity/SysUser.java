@@ -1,7 +1,10 @@
 package com.lab.auth.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 /**
@@ -10,8 +13,10 @@ import lombok.Data;
 @Data
 @TableName("sys_user")
 public class SysUser {
+    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
     private String username;
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String passwordHash;
     private String realName;
     private String phone;

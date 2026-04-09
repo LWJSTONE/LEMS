@@ -23,7 +23,7 @@
       <el-pagination style="margin-top:16px; text-align:right"
         v-model:current-page="queryParams.current" v-model:page-size="queryParams.size"
         :total="total" :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next"
-        @current-change="loadData" @size-change="loadData" />
+        @current-change="loadData" @size-change="handleSizeChange" />
     </el-card>
 
     <el-dialog v-model="rejectDialogVisible" title="驳回原因" width="450px">
@@ -81,11 +81,20 @@ const handleReject = (row) => {
 
 const confirmReject = async () => {
   if (!rejectReason.value) { ElMessage.warning('请填写驳回理由'); return }
-  await rejectBorrow(rejectId.value, rejectReason.value)
-  ElMessage.success('已驳回')
-  rejectDialogVisible.value = false
-  loadData()
+  try {
+    await rejectBorrow(rejectId.value, rejectReason.value)
+    ElMessage.success('已驳回')
+    rejectDialogVisible.value = false
+    loadData()
+  } catch (e) {
+    console.error('驳回失败', e)
+  }
 }
 
 onMounted(loadData)
+
+const handleSizeChange = () => {
+  queryParams.current = 1
+  loadData()
+}
 </script>

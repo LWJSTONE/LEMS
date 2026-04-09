@@ -1,6 +1,7 @@
 package com.lab.borrow.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lab.common.annotation.RequireRole;
 import com.lab.common.result.R;
 import com.lab.borrow.entity.BorrowRecord;
 import com.lab.borrow.service.BorrowService;
@@ -44,6 +45,7 @@ public class BorrowController {
     /**
      * 待审批列表
      */
+    @RequireRole({"ADMIN", "TEACHER"})
     @GetMapping("/pending/list")
     public R<Page<BorrowRecord>> pendingList(
             @RequestParam(defaultValue = "1") int current,
@@ -54,6 +56,7 @@ public class BorrowController {
     /**
      * 审批通过
      */
+    @RequireRole({"ADMIN", "TEACHER"})
     @PutMapping("/approve/{id}")
     public R<Void> approve(@PathVariable Long id,
                             @RequestHeader("X-User-Id") Long userId) {
@@ -64,6 +67,7 @@ public class BorrowController {
     /**
      * 驳回申请
      */
+    @RequireRole({"ADMIN", "TEACHER"})
     @PutMapping("/reject/{id}")
     public R<Void> reject(@PathVariable Long id,
                            @RequestHeader("X-User-Id") Long userId,
@@ -98,6 +102,7 @@ public class BorrowController {
     /**
      * 逾期未归还列表
      */
+    @RequireRole({"ADMIN", "TEACHER"})
     @GetMapping("/overdue/list")
     public R<Page<BorrowRecord>> overdueList(
             @RequestParam(defaultValue = "1") int current,

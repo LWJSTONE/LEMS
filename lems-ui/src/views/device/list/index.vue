@@ -268,7 +268,9 @@ const submitForm = async () => {
 }
 
 const handleDelete = async (row) => {
-  await ElMessageBox.confirm(`确认删除设备"${row.name}"?`, '提示', { type: 'warning' })
+  try {
+    await ElMessageBox.confirm(`确认删除设备"${row.name}"?`, '提示', { type: 'warning' })
+  } catch (e) { return }
   try {
     await deleteDevice(row.id)
     ElMessage.success('删除成功')

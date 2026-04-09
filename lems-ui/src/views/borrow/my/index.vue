@@ -40,7 +40,7 @@
       <el-pagination style="margin-top:16px; text-align:right"
         v-model:current-page="queryParams.current" v-model:page-size="queryParams.size"
         :total="total" :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next"
-        @current-change="loadData" @size-change="loadData" />
+        @current-change="loadData" @size-change="handleSizeChange" />
     </el-card>
 
     <!-- 归还对话框 -->
@@ -90,10 +90,14 @@ const loadData = async () => {
 }
 
 const handleCancel = async (row) => {
-  await ElMessageBox.confirm('确认取消此申请?', '提示', { type: 'warning' })
-  await cancelBorrow(row.id)
-  ElMessage.success('已取消')
-  loadData()
+  try {
+    await ElMessageBox.confirm('确认取消此申请?', '提示', { type: 'warning' })
+    await cancelBorrow(row.id)
+    ElMessage.success('已取消')
+    loadData()
+  } catch (e) {
+    if (e !== 'cancel') console.error('取消失败', e)
+  }
 }
 
 const handleReturn = (row) => {
@@ -103,13 +107,22 @@ const handleReturn = (row) => {
 }
 
 const confirmReturn = async () => {
-  await returnDevice(returnId.value, returnRemark.value)
-  ElMessage.success('归还成功')
-  returnDialogVisible.value = false
-  loadData()
+  try {
+    await returnDevice(returnId.value, returnRemark.value)
+    ElMessage.success('归还成功')
+    returnDialogVisible.value = false
+    loadData()
+  } catch (e) {
+    console.error('归还失败', e)
+  }
 }
 
 onMounted(loadData)
+
+const handleSizeChange = () => {
+  queryParams.current = 1
+  loadData()
+}
 </script>
 
 <style scoped>

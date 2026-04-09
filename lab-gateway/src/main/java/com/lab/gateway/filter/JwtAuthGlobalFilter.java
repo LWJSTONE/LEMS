@@ -9,7 +9,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -28,6 +28,7 @@ import java.util.List;
 /**
  * JWT鉴权全局过滤器
  * 解析JWT并将userId/role放入Header传递给下游微服务
+ * 使用 ReactiveStringRedisTemplate 避免阻塞 Netty 事件循环
  */
 @Component
 public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
@@ -36,7 +37,7 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
     private String jwtSecret;
 
     @Resource
-    private StringRedisTemplate stringRedisTemplate;
+    private ReactiveStringRedisTemplate reactiveStringRedisTemplate;
 
     private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
 
@@ -74,35 +75,39 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
         // 去掉Bearer前缀
         String token = authHeader.substring(CommonConstant.JWT_PREFIX.length());
 
-        try {
-            // 检查Redis黑名单
-            String blacklistKey = CommonConstant.JWT_BLACKLIST_PREFIX + token;
-            Boolean isBlacklisted = stringRedisTemplate.hasKey(blacklistKey);
-            if (Boolean.TRUE.equals(isBlacklisted)) {
-                return unauthorizedResponse(exchange, "token已失效，请重新登录");
-            }
+        // 使用响应式Redis检查黑名单
+        String blacklistKey = CommonConstant.JWT_BLACKLIST_PREFIX + token;
 
-            // 解析Token
-            Long userId = JwtUtil.getUserIdFromToken(token, jwtSecret);
-            String username = JwtUtil.getUsernameFromToken(token, jwtSecret);
-            String role = JwtUtil.getRoleFromToken(token, jwtSecret);
+        return reactiveStringRedisTemplate.hasKey(blacklistKey)
+                .flatMap(isBlacklisted -> {
+                    if (Boolean.TRUE.equals(isBlacklisted)) {
+                        return unauthorizedResponse(exchange, "token已失效，请重新登录");
+                    }
 
-            // 检查Token是否过期
-            if (JwtUtil.isTokenExpired(token, jwtSecret)) {
-                return unauthorizedResponse(exchange, "token已过期，请重新登录");
-            }
+                    try {
+                        // 解析Token
+                        Long userId = JwtUtil.getUserIdFromToken(token, jwtSecret);
+                        String username = JwtUtil.getUsernameFromToken(token, jwtSecret);
+                        String role = JwtUtil.getRoleFromToken(token, jwtSecret);
 
-            // 将用户信息放入请求头传递给下游微服务
-            ServerHttpRequest.Builder requestBuilder = request.mutate();
-            requestBuilder.header(CommonConstant.USER_ID_HEADER, String.valueOf(userId));
-            requestBuilder.header(CommonConstant.USERNAME_HEADER, username);
-            requestBuilder.header(CommonConstant.USER_ROLE_HEADER, role);
+                        // 检查Token是否过期
+                        if (JwtUtil.isTokenExpired(token, jwtSecret)) {
+                            return unauthorizedResponse(exchange, "token已过期，请重新登录");
+                        }
 
-            return chain.filter(exchange.mutate().request(requestBuilder.build()).build());
+                        // 将用户信息放入请求头传递给下游微服务
+                        ServerHttpRequest.Builder requestBuilder = request.mutate();
+                        requestBuilder.header(CommonConstant.USER_ID_HEADER, String.valueOf(userId));
+                        requestBuilder.header(CommonConstant.USERNAME_HEADER, username);
+                        requestBuilder.header(CommonConstant.USER_ROLE_HEADER, role);
 
-        } catch (Exception e) {
-            return unauthorizedResponse(exchange, "token解析失败: " + e.getMessage());
-        }
+                        return chain.filter(exchange.mutate().request(requestBuilder.build()).build());
+
+                    } catch (Exception e) {
+                        return unauthorizedResponse(exchange, "token解析失败: " + e.getMessage());
+                    }
+                })
+                .onErrorResume(e -> unauthorizedResponse(exchange, "认证服务异常，请稍后重试"));
     }
 
     private Mono<Void> unauthorizedResponse(ServerWebExchange exchange, String message) {

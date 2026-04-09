@@ -1,6 +1,7 @@
 package com.lab.device.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lab.common.annotation.RequireRole;
 import com.lab.common.result.R;
 import com.lab.device.entity.DeviceCategory;
 import com.lab.device.entity.DeviceInfo;
@@ -29,18 +30,21 @@ public class DeviceController {
         return R.ok(deviceService.getCategoryTree());
     }
 
+    @RequireRole("ADMIN")
     @PostMapping("/categories")
     public R<Void> addCategory(@RequestBody DeviceCategory category) {
         deviceService.addCategory(category);
         return R.ok();
     }
 
+    @RequireRole("ADMIN")
     @PutMapping("/categories")
     public R<Void> updateCategory(@RequestBody DeviceCategory category) {
         deviceService.updateCategory(category);
         return R.ok();
     }
 
+    @RequireRole("ADMIN")
     @DeleteMapping("/categories/{id}")
     public R<Void> deleteCategory(@PathVariable Long id) {
         deviceService.deleteCategory(id);
@@ -49,18 +53,21 @@ public class DeviceController {
 
     // ==================== 设备台账 ====================
 
+    @RequireRole("ADMIN")
     @PostMapping("/info")
     public R<Void> addDevice(@RequestBody DeviceInfo deviceInfo) {
         deviceService.addDevice(deviceInfo);
         return R.ok();
     }
 
+    @RequireRole("ADMIN")
     @PutMapping("/info")
     public R<Void> updateDevice(@RequestBody DeviceInfo deviceInfo) {
         deviceService.updateDevice(deviceInfo);
         return R.ok();
     }
 
+    @RequireRole("ADMIN")
     @DeleteMapping("/info/{id}")
     public R<Void> deleteDevice(@PathVariable Long id) {
         deviceService.deleteDevice(id);
@@ -83,6 +90,7 @@ public class DeviceController {
         return R.ok(deviceService.getDevicePage(current, size, name, categoryId, labId, status));
     }
 
+    @RequireRole("ADMIN")
     @PutMapping("/info/{id}/status")
     public R<Void> updateDeviceStatus(@PathVariable Long id, @RequestParam Integer status) {
         deviceService.updateDeviceStatus(id, status);
@@ -97,6 +105,7 @@ public class DeviceController {
         return R.ok();
     }
 
+    @RequireRole("ADMIN")
     @PutMapping("/maintenance/{id}/status")
     public R<Void> updateMaintenanceStatus(@PathVariable Long id, @RequestParam Integer status) {
         deviceService.updateMaintenanceStatus(id, status);
@@ -128,14 +137,14 @@ public class DeviceController {
      */
     @PutMapping("/inner/quantity")
     public R<Void> updateAvailableQuantity(@RequestBody Map<String, Object> params) {
+        if (params == null || params.get("deviceId") == null || params.get("quantity") == null
+                || params.get("operation") == null || params.get("version") == null) {
+            return R.fail("参数不完整");
+        }
         Long deviceId = Long.valueOf(params.get("deviceId").toString());
         Integer quantity = Integer.valueOf(params.get("quantity").toString());
         String operation = params.get("operation").toString();
         Integer version = Integer.valueOf(params.get("version").toString());
-
-        if (deviceId == null || quantity == null || operation == null || version == null) {
-            return R.fail("参数不完整");
-        }
 
         boolean success;
         if ("DECREASE".equals(operation)) {

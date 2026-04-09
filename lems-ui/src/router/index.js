@@ -68,7 +68,6 @@ const routes = [
         meta: { title: '实验室管理', icon: 'OfficeBuilding', roles: ['ADMIN'] }
       }
     ]
-  }
   },
   {
     path: '/:pathMatch(.*)*',

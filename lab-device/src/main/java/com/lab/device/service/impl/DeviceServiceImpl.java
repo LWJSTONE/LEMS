@@ -232,10 +232,12 @@ public class DeviceServiceImpl implements DeviceService {
         // 如果修复完成，更新设备状态为正常
         if (status == 2) {
             DeviceMaintenance m = deviceMaintenanceMapper.selectById(id);
-            DeviceInfo device = new DeviceInfo();
-            device.setId(m.getDeviceId());
-            device.setStatus(0);
-            deviceInfoMapper.updateById(device);
+            if (m != null && m.getDeviceId() != null) {
+                DeviceInfo device = new DeviceInfo();
+                device.setId(m.getDeviceId());
+                device.setStatus(0);
+                deviceInfoMapper.updateById(device);
+            }
         }
     }
 

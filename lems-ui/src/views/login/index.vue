@@ -31,7 +31,7 @@
             <el-form-item prop="realName">
               <el-input v-model="registerForm.realName" prefix-icon="UserFilled" placeholder="真实姓名" size="large" />
             </el-form-item>
-            <el-form-item>
+            <el-form-item prop="roleType">
               <el-select v-model="registerForm.roleType" placeholder="角色" size="large" style="width:100%">
                 <el-option label="学生" value="STUDENT" />
                 <el-option label="教师" value="TEACHER" />
@@ -74,7 +74,8 @@ const registerForm = ref({ username: '', password: '', realName: '', roleType: '
 const registerRules = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
-  realName: [{ required: true, message: '请输入姓名', trigger: 'blur' }]
+  realName: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
+  roleType: [{ required: true, message: '请选择角色', trigger: 'change' }]
 }
 
 const handleLogin = async () => {

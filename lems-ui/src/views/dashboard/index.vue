@@ -83,27 +83,31 @@ let trendChart = null
 
 onMounted(async () => {
   try {
-    const [statsRes, usageRes, trendRes] = await Promise.all([
+    const [statsRes, usageRes, trendRes] = await Promise.allSettled([
       getDashboardStats(),
       getDeviceUsageTop(),
       getMonthlyTrend()
     ])
-    stats.value = statsRes.data || {}
+
+    // 处理统计卡片数据
+    if (statsRes.status === 'fulfilled') {
+      stats.value = statsRes.value.data || {}
+    }
 
     // 设备使用率图表
-    if (usageRes.data && usageChartRef.value) {
+    if (usageRes.status === 'fulfilled' && usageRes.value.data && usageChartRef.value) {
       usageChart = echarts.init(usageChartRef.value)
       usageChart.setOption({
         tooltip: { trigger: 'axis' },
         xAxis: {
           type: 'category',
-          data: usageRes.data.map(i => i.name.length > 6 ? i.name.substring(0,6)+'...' : i.name),
+          data: usageRes.value.data.map(i => i.name.length > 6 ? i.name.substring(0,6)+'...' : i.name),
           axisLabel: { rotate: 30 }
         },
         yAxis: { type: 'value', name: '使用率(%)' },
         series: [{
           type: 'bar',
-          data: usageRes.data.map(i => i.usageRate),
+          data: usageRes.value.data.map(i => i.usageRate),
           itemStyle: {
             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
               { offset: 0, color: '#409EFF' },
@@ -115,19 +119,19 @@ onMounted(async () => {
     }
 
     // 月度趋势图表
-    if (trendRes.data && trendChartRef.value) {
+    if (trendRes.status === 'fulfilled' && trendRes.value.data && trendChartRef.value) {
       trendChart = echarts.init(trendChartRef.value)
       trendChart.setOption({
         tooltip: { trigger: 'axis' },
         legend: { data: ['借用次数', '借用数量'] },
-        xAxis: { type: 'category', data: trendRes.data.map(i => i.month) },
+        xAxis: { type: 'category', data: trendRes.value.data.map(i => i.month) },
         yAxis: [
           { type: 'value', name: '次数' },
           { type: 'value', name: '数量' }
         ],
         series: [
-          { name: '借用次数', type: 'line', data: trendRes.data.map(i => i.borrowCount), smooth: true },
-          { name: '借用数量', type: 'bar', yAxisIndex: 1, data: trendRes.data.map(i => i.totalQuantity) }
+          { name: '借用次数', type: 'line', data: trendRes.value.data.map(i => i.borrowCount), smooth: true },
+          { name: '借用数量', type: 'bar', yAxisIndex: 1, data: trendRes.value.data.map(i => i.totalQuantity) }
         ]
       })
     }

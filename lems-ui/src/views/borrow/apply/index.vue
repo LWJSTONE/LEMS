@@ -35,7 +35,7 @@
             <el-form-item label="借用时间" prop="dateRange">
               <el-date-picker v-model="form.dateRange" type="datetimerange"
                 range-separator="至" start-placeholder="开始时间" end-placeholder="归还时间"
-                format="YYYY-MM-DD HH:mm" value-format="YYYY-MM-DDTHH:mm:ss"
+                format="YYYY-MM-DD HH:mm" value-format="YYYY-MM-DD HH:mm:ss"
                 style="width:100%" />
             </el-form-item>
 

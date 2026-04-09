@@ -1,6 +1,7 @@
 package com.lab.user.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lab.common.annotation.RequireRole;
 import com.lab.common.result.R;
 import com.lab.user.entity.LabInfo;
 import com.lab.user.entity.SysUser;
@@ -41,6 +42,7 @@ public class UserController {
     /**
      * 分页查询用户列表（管理员）
      */
+    @RequireRole("ADMIN")
     @GetMapping("/page")
     public R<Page<SysUser>> getUserPage(
             @RequestParam(defaultValue = "1") int current,
@@ -53,6 +55,7 @@ public class UserController {
     /**
      * 更新用户状态（管理员）
      */
+    @RequireRole("ADMIN")
     @PutMapping("/{id}/status")
     public R<Void> updateUserStatus(@PathVariable Long id, @RequestParam Integer status) {
         userService.updateUserStatus(id, status);
@@ -81,6 +84,7 @@ public class UserController {
     /**
      * 新增实验室（管理员）
      */
+    @RequireRole("ADMIN")
     @PostMapping("/lab")
     public R<Void> addLab(@RequestBody LabInfo labInfo) {
         userService.addLab(labInfo);
@@ -90,6 +94,7 @@ public class UserController {
     /**
      * 修改实验室（管理员）
      */
+    @RequireRole("ADMIN")
     @PutMapping("/lab")
     public R<Void> updateLab(@RequestBody LabInfo labInfo) {
         userService.updateLab(labInfo);
