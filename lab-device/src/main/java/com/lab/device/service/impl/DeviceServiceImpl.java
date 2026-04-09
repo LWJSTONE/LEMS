@@ -142,10 +142,15 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Override
     public void updateDeviceStatus(Long id, Integer status) {
-        DeviceInfo device = new DeviceInfo();
-        device.setId(id);
-        device.setStatus(status);
-        deviceInfoMapper.updateById(device);
+        DeviceInfo existing = deviceInfoMapper.selectById(id);
+        if (existing == null) {
+            throw new BusinessException("设备不存在");
+        }
+        existing.setStatus(status);
+        int rows = deviceInfoMapper.updateById(existing);
+        if (rows == 0) {
+            throw new BusinessException("设备状态更新冲突，请刷新后重试");
+        }
         log.info("更新设备状态: id={}, status={}", id, status);
     }
 
@@ -213,31 +218,33 @@ public class DeviceServiceImpl implements DeviceService {
     // ==================== 维修记录 ====================
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void addMaintenance(DeviceMaintenance maintenance) {
         maintenance.setDeleted(0);
         maintenance.setStatus(0);
         deviceMaintenanceMapper.insert(maintenance);
-        // 同步更新设备状态为维修中
-        DeviceInfo device = new DeviceInfo();
-        device.setId(maintenance.getDeviceId());
-        device.setStatus(1);
-        deviceInfoMapper.updateById(device);
+        // 同步更新设备状态为维修中（带乐观锁检查）
+        DeviceInfo existing = deviceInfoMapper.selectById(maintenance.getDeviceId());
+        if (existing != null) {
+            existing.setStatus(1);
+            deviceInfoMapper.updateById(existing);
+        }
         log.info("新增维修记录: deviceId={}", maintenance.getDeviceId());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateMaintenanceStatus(Long id, Integer status) {
-        DeviceMaintenance maintenance = new DeviceMaintenance();
-        maintenance.setId(id);
-        maintenance.setStatus(status);
-        deviceMaintenanceMapper.updateById(maintenance);
+        DeviceMaintenance existing = deviceMaintenanceMapper.selectById(id);
+        if (existing == null) {
+            throw new BusinessException("维修记录不存在");
+        }
+        existing.setStatus(status);
+        deviceMaintenanceMapper.updateById(existing);
         // 如果修复完成，更新设备状态为正常
-        if (status == 2) {
-            DeviceMaintenance m = deviceMaintenanceMapper.selectById(id);
-            if (m != null && m.getDeviceId() != null) {
-                DeviceInfo device = new DeviceInfo();
-                device.setId(m.getDeviceId());
+        if (status == 2 && existing.getDeviceId() != null) {
+            DeviceInfo device = deviceInfoMapper.selectById(existing.getDeviceId());
+            if (device != null) {
                 device.setStatus(0);
                 deviceInfoMapper.updateById(device);
             }

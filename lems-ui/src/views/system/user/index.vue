@@ -53,7 +53,7 @@
       <el-pagination style="margin-top:16px; text-align:right"
         v-model:current-page="queryParams.current" v-model:page-size="queryParams.size"
         :total="total" layout="total, sizes, prev, pager, next"
-        @current-change="loadData" @size-change="loadData" />
+        @current-change="loadData" @size-change="handleSizeChange" />
     </el-card>
   </div>
 </template>
@@ -81,6 +81,11 @@ const loadData = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const handleSizeChange = () => {
+  queryParams.current = 1
+  loadData()
 }
 
 const resetQuery = () => {

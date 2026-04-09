@@ -73,12 +73,15 @@ const loginRules = {
 const registerForm = ref({ username: '', password: '', realName: '', roleType: 'STUDENT' })
 const registerRules = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+  password: [{ required: true, message: '请输入密码', trigger: 'blur' }, { min: 6, message: '密码至少6个字符', trigger: 'blur' }],
   realName: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
   roleType: [{ required: true, message: '请选择角色', trigger: 'change' }]
 }
 
 const handleLogin = async () => {
+  try {
+    await loginFormRef.value.validate()
+  } catch (e) { return }
   loading.value = true
   try {
     const res = await login(loginForm.value)
@@ -96,6 +99,9 @@ const handleLogin = async () => {
 }
 
 const handleRegister = async () => {
+  try {
+    await registerFormRef.value.validate()
+  } catch (e) { return }
   loading.value = true
   try {
     const res = await register(registerForm.value)

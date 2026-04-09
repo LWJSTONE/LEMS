@@ -2,6 +2,7 @@ package com.lab.common.config;
 
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import org.apache.ibatis.reflection.MetaObject;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -9,8 +10,10 @@ import java.time.LocalDateTime;
 /**
  * MyBatis-Plus 自动填充处理器
  * 在 insert 和 update 时自动填充 createTime 和 updateTime
+ * ★ @ConditionalOnClass 确保仅在 MyBatis-Plus 在 classpath 中时才加载（网关不引入 mybatis-plus）
  */
 @Component
+@ConditionalOnClass(MetaObjectHandler.class)
 public class MybatisMetaObjectHandler implements MetaObjectHandler {
 
     @Override

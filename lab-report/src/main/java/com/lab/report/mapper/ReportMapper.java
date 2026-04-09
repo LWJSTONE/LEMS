@@ -20,7 +20,7 @@ public interface ReportMapper {
             "d.available_quantity AS availableQuantity, " +
             "COUNT(br.id) AS borrowCount, " +
             "SUM(br.borrow_quantity) AS totalBorrowQuantity, " +
-            "ROUND(SUM(br.borrow_quantity) / d.total_quantity * 100, 2) AS usageRate " +
+            "ROUND(SUM(br.borrow_quantity) / NULLIF(d.total_quantity, 0) * 100, 2) AS usageRate " +
             "FROM device_info d " +
             "LEFT JOIN borrow_record br ON d.id = br.device_id AND br.status IN (1, 2, 3) " +
             "WHERE d.deleted = 0 " +

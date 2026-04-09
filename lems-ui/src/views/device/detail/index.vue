@@ -123,8 +123,8 @@ const loadMaintenance = async () => {
 const submitMaintenance = async () => {
   if (!maintForm.faultDesc) { ElMessage.warning('请填写故障描述'); return }
   try {
-    maintForm.reportUserId = userStore.userInfo.id
-    await addMaintenance(maintForm)
+    // reportUserId 由后端从 X-User-Id Header 自动设置，无需前端传递
+    await addMaintenance({ deviceId: maintForm.deviceId, faultDesc: maintForm.faultDesc })
     ElMessage.success('报修提交成功')
     showMaintenanceForm.value = false
     maintForm.faultDesc = ''

@@ -10,6 +10,7 @@ import com.lab.common.exception.BusinessException;
 import com.lab.common.result.R;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -78,9 +79,15 @@ public class BorrowServiceImpl implements BorrowService {
             }
             @SuppressWarnings("unchecked")
             Map<String, Object> deviceMap = (Map<String, Object>) deviceResult.getData();
-            Integer availableQuantity = Integer.valueOf(deviceMap.get("availableQuantity").toString());
-            Integer version = Integer.valueOf(deviceMap.get("version").toString());
-            Integer status = Integer.valueOf(deviceMap.get("status").toString());
+            Object qtyObj = deviceMap.get("availableQuantity");
+            Object verObj = deviceMap.get("version");
+            Object statusObj = deviceMap.get("status");
+            if (qtyObj == null || verObj == null || statusObj == null) {
+                throw new BusinessException("设备数据异常，缺少必要字段");
+            }
+            Integer availableQuantity = Integer.valueOf(qtyObj.toString());
+            Integer version = Integer.valueOf(verObj.toString());
+            Integer status = Integer.valueOf(statusObj.toString());
 
             if (status != 0) {
                 throw new BusinessException("设备当前状态不可借用");
@@ -116,15 +123,18 @@ public class BorrowServiceImpl implements BorrowService {
                     if (latestDeviceResult.getCode() == 200 && latestDeviceResult.getData() != null) {
                         @SuppressWarnings("unchecked")
                         Map<String, Object> latestDeviceMap = (Map<String, Object>) latestDeviceResult.getData();
-                        Integer latestVersion = Integer.valueOf(latestDeviceMap.get("version").toString());
-                        Map<String, Object> compensateParams = new java.util.HashMap<>();
-                        compensateParams.put("deviceId", deviceId);
-                        compensateParams.put("quantity", quantity);
-                        compensateParams.put("operation", "INCREASE");
-                        compensateParams.put("version", latestVersion);
-                        com.lab.common.result.R<?> compensateResult = deviceFeignClient.updateAvailableQuantity(compensateParams);
-                        if (compensateResult.getCode() != 200) {
-                            log.error("库存补偿回加失败（版本冲突）: deviceId={}, version={}", deviceId, latestVersion);
+                        Object latestVerObj = latestDeviceMap.get("version");
+                        if (latestVerObj != null) {
+                            Integer latestVersion = Integer.valueOf(latestVerObj.toString());
+                            Map<String, Object> compensateParams = new java.util.HashMap<>();
+                            compensateParams.put("deviceId", deviceId);
+                            compensateParams.put("quantity", quantity);
+                            compensateParams.put("operation", "INCREASE");
+                            compensateParams.put("version", latestVersion);
+                            com.lab.common.result.R<?> compensateResult = deviceFeignClient.updateAvailableQuantity(compensateParams);
+                            if (compensateResult.getCode() != 200) {
+                                log.error("库存补偿回加失败（版本冲突）: deviceId={}, version={}", deviceId, latestVersion);
+                            }
                         }
                     }
                 } catch (Exception ex) {
@@ -136,11 +146,10 @@ public class BorrowServiceImpl implements BorrowService {
             log.info("借用申请成功: borrowId={}, deviceId={}, quantity={}, userId={}", record.getId(), deviceId, quantity, userId);
 
         } finally {
-            // 释放分布式锁（仅释放自己持有的锁）
-            String currentValue = stringRedisTemplate.opsForValue().get(lockKey);
-            if (lockValue.equals(currentValue)) {
-                stringRedisTemplate.delete(lockKey);
-            }
+            // 释放分布式锁（使用Lua脚本保证原子性，避免TOCTOU竞态）
+            String luaScript = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
+            DefaultRedisScript<Long> redisScript = new DefaultRedisScript<>(luaScript, Long.class);
+            stringRedisTemplate.execute(redisScript, Collections.singletonList(lockKey), lockValue);
         }
     }
 
@@ -418,7 +427,12 @@ public class BorrowServiceImpl implements BorrowService {
         }
         @SuppressWarnings("unchecked")
         Map<String, Object> deviceMap = (Map<String, Object>) deviceResult.getData();
-        Integer version = Integer.valueOf(deviceMap.get("version").toString());
+        Object verObj = deviceMap.get("version");
+        if (verObj == null) {
+            log.error("释放库存失败：设备数据缺少版本号, deviceId={}", deviceId);
+            throw new BusinessException("设备数据异常，请联系管理员");
+        }
+        Integer version = Integer.valueOf(verObj.toString());
 
         Map<String, Object> params = new java.util.HashMap<>();
         params.put("deviceId", deviceId);

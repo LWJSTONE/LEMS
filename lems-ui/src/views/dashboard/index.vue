@@ -74,6 +74,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import * as echarts from 'echarts'
 import { getDashboardStats, getDeviceUsageTop, getMonthlyTrend } from '@/api/report'
+import { ElMessage } from 'element-plus'
 
 const stats = ref({})
 const usageChartRef = ref(null)
@@ -93,6 +94,7 @@ onMounted(async () => {
     stats.value = statsRes.value.data || {}
   } else {
     console.error('加载统计数据失败:', statsRes.reason)
+    ElMessage.warning('统计数据加载失败，部分数据可能不完整')
   }
 
   // 设备使用率图表
