@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: 794px 1123px; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 794px;
+    height: 1123px;
+    font-family: "SimHei", "Microsoft YaHei", sans-serif;
+    background: #ffffff;
+    overflow: visible;
+    position: relative;
+  }
+  @media screen {
+    html { height: auto; display: flex; justify-content: center; }
+    body { transform-origin: top center; scale: min(1, calc(100vh / 1123)); margin: 0 auto; }
+  }
+  .cover {
+    width: 794px;
+    height: 1123px;
+    position: relative;
+    background: #ffffff;
+    overflow: hidden;
+  }
+  /* Decorative elements */
+  .accent-line-top {
+    position: absolute;
+    top: 60px;
+    left: 60px;
+    right: 60px;
+    height: 3px;
+    background: #5d38ce;
+  }
+  .accent-line-bottom {
+    position: absolute;
+    bottom: 60px;
+    left: 60px;
+    right: 60px;
+    height: 3px;
+    background: #5d38ce;
+  }
+  .side-accent {
+    position: absolute;
+    left: 60px;
+    top: 80px;
+    bottom: 80px;
+    width: 1px;
+    background: rgba(93, 56, 206, 0.15);
+  }
+  /* Content layout */
+  .school-name {
+    position: absolute;
+    top: 120px;
+    left: 100px;
+    right: 100px;
+    text-align: center;
+  }
+  .school-name h2 {
+    font-size: 28pt;
+    font-weight: bold;
+    color: #272623;
+    letter-spacing: 8px;
+  }
+  .doc-type {
+    position: absolute;
+    top: 185px;
+    left: 100px;
+    right: 100px;
+    text-align: center;
+  }
+  .doc-type h1 {
+    font-size: 36pt;
+    font-weight: bold;
+    color: #272623;
+    letter-spacing: 12px;
+  }
+  .title-block {
+    position: absolute;
+    top: 300px;
+    left: 100px;
+    right: 100px;
+    text-align: center;
+  }
+  .title-block h3 {
+    font-size: 22pt;
+    font-weight: bold;
+    color: #272623;
+    line-height: 1.8;
+    letter-spacing: 2px;
+  }
+  /* Info fields */
+  .info-block {
+    position: absolute;
+    top: 480px;
+    left: 140px;
+    right: 140px;
+  }
+  .info-row {
+    display: flex;
+    align-items: baseline;
+    margin-bottom: 18px;
+    padding: 0 20px;
+  }
+  .info-label {
+    font-size: 15pt;
+    color: #272623;
+    white-space: nowrap;
+    min-width: 120px;
+    text-align: justify;
+    text-align-last: justify;
+  }
+  .info-label::after {
+    content: "";
+    display: inline-block;
+  }
+  .info-value {
+    font-size: 15pt;
+    color: #272623;
+    margin-left: 8px;
+    border-bottom: 1px solid #272623;
+    padding: 0 4px 2px 4px;
+    min-width: 200px;
+  }
+  .long-value {
+    min-width: 320px;
+  }
+  /* Bottom decorative */
+  .date-block {
+    position: absolute;
+    bottom: 100px;
+    left: 100px;
+    right: 100px;
+    text-align: center;
+  }
+  .date-block p {
+    font-size: 16pt;
+    color: #272623;
+    letter-spacing: 4px;
+  }
+</style>
+</head>
+<body>
+<div class="cover">
+  <div class="accent-line-top"></div>
+  <div class="accent-line-bottom"></div>
+  <div class="side-accent"></div>
+
+  <div class="school-name">
+    <h2>XX大学</h2>
+  </div>
+
+  <div class="doc-type">
+    <h1>毕业设计（论文）</h1>
+  </div>
+
+  <div class="title-block">
+    <h3>基于Spring Cloud的<br>实验设备管理系统的设计与实现</h3>
+  </div>
+
+  <div class="info-block">
+    <div class="info-row">
+      <span class="info-label">学院：</span>
+      <span class="info-value long-value">计算机科学与技术学院</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">专业：</span>
+      <span class="info-value long-value">软件工程</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">班级：</span>
+      <span class="info-value long-value">软件工程XX班</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">姓名：</span>
+      <span class="info-value long-value">XX</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">学号：</span>
+      <span class="info-value long-value">XXXXXXXXXX</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">指导教师：</span>
+      <span class="info-value long-value">XX</span>
+    </div>
+  </div>
+
+  <div class="date-block">
+    <p>2026年4月</p>
+  </div>
+</div>
+</body>
+</html>
