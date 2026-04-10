@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: lab-gateway
+  config:
+    import: optional:nacos:
   cloud:
     nacos:
       discovery:
