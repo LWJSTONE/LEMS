@@ -4,6 +4,7 @@
 -- 字符集: utf8mb4
 -- =============================================================
 
+DROP DATABASE IF EXISTS `lab_device_mgt`;
 CREATE DATABASE IF NOT EXISTS `lab_device_mgt` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 
 USE `lab_device_mgt`;
@@ -157,11 +158,11 @@ CREATE TABLE `sys_dict` (
 -- 初始化数据
 -- =============================================================
 
--- 初始管理员密码: admin123 (BCrypt加密)
+-- 初始管理员密码: 123456 (BCrypt加密)
 INSERT INTO `sys_user` (`id`, `username`, `password_hash`, `real_name`, `phone`, `email`, `role_type`, `status`) VALUES
-(1, 'admin', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '系统管理员', '13800000001', 'admin@lab.edu.cn', 'ADMIN', 1),
-(2, 'teacher01', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '张老师', '13800000002', 'teacher@lab.edu.cn', 'TEACHER', 1),
-(3, 'student01', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '李同学', '13800000003', 'student@lab.edu.cn', 'STUDENT', 1);
+(1, 'admin', '$2a$10$LALBfDe5tGRqY3byjabvPeGjIJtItLnh4QdN0UTH/BkETLpWdzV/a', '系统管理员', '13800000001', 'admin@lab.edu.cn', 'ADMIN', 1),
+(2, 'teacher01', '$2a$10$LALBfDe5tGRqY3byjabvPeGjIJtItLnh4QdN0UTH/BkETLpWdzV/a', '张老师', '13800000002', 'teacher@lab.edu.cn', 'TEACHER', 1),
+(3, 'student01', '$2a$10$LALBfDe5tGRqY3byjabvPeGjIJtItLnh4QdN0UTH/BkETLpWdzV/a', '李同学', '13800000003', 'student@lab.edu.cn', 'STUDENT', 1);
 
 -- 初始实验室
 INSERT INTO `lab_info` (`id`, `name`, `location`, `manager_id`, `contact_phone`, `status`) VALUES
