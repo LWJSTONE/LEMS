@@ -4,17 +4,11 @@ server:
 spring:
   application:
     name: lab-gateway
-  config:
-    import: "optional:nacos:"
   cloud:
     nacos:
       discovery:
         server-addr: localhost:8848
         namespace: public
-      config:
-        server-addr: localhost:8848
-        namespace: public
-        file-extension: yaml
     gateway:
       discovery:
         locator:
