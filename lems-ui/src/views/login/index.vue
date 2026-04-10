@@ -46,7 +46,7 @@
         </el-tab-pane>
       </el-tabs>
       <div v-if="isDev" class="demo-accounts">
-        <p>演示账号: admin/admin123 | teacher01/admin123 | student01/admin123</p>
+        <p>演示账号: admin/123456 | teacher01/123456 | student01/123456</p>
       </div>
     </div>
   </div>
@@ -64,6 +64,8 @@ const userStore = useUserStore()
 const activeTab = ref('login')
 const loading = ref(false)
 const isDev = import.meta.env.DEV
+const loginFormRef = ref()
+const registerFormRef = ref()
 
 const loginForm = ref({ username: '', password: '' })
 const loginRules = {
